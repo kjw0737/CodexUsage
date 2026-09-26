@@ -1,0 +1,40 @@
+﻿# Visual Studio and MSBuild outputs
+.vs/
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+Win32/
+*.aps
+*.ipch
+*.sdf
+*.suo
+*.VC.db
+*.VC.opendb
+*.user
+*.cache
+*.log
+*.tlog
+*.lastbuildstate
+*.pdb
+*.ilk
+*.obj
+*.pch
+*.idb
+*.res
+*.recipe
+
+# Local Codex schema dump and credentials
+protocol-reference/
+.codex/
+.env
+.env.*
+auth.json
+config.toml
+
+# Temporary editor files
+*~
+*.tmp
+# Local agent instructions and SVN workflow
+Agents.md

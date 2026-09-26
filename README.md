@@ -1,0 +1,42 @@
+﻿# CodexUsage
+
+Windows용 MFC Codex 사용량 위젯입니다. 로그인된 Codex CLI의 ChatGPT 사용량을 주기적으로 읽어 남은 비율, 리셋 시각, 리셋 크레딧을 표시합니다. 창 크기는 360 × 280픽셀이며 제목 표시줄 없이 드래그해 이동할 수 있습니다.
+
+![CodexUsage 아이콘](CodexUsage/res/CodexUsage.png)
+
+## 기능
+
+- 단기·장기 한도와 남은 비율, 리셋 시각 표시. 값이 없으면 N/A, 연결이 끊기면 마지막 값을 회색으로 표시
+- Windows 밝음/어두움 테마 연동, 투명도, 항상 위, 조회 주기 설정
+- Warning·Alert 기준에 따라 막대 색상 변경 및 Windows 알림 요청. 기본값은 남은 비율 50%와 20%
+- Codex CLI 실행, 설치된 Codex GUI 실행 또는 숨겨진 창 복원
+- 트레이 아이콘의 사용량 도움말, 클릭 복원, 새로 고침·종료 메뉴
+- 현재 사용자 로그인 시 자동 실행 및 시작 시 트레이로 숨기기
+
+## 준비사항
+
+- Windows 10/11, Visual Studio 2022의 C++ 데스크톱 개발 도구·MFC·Windows SDK
+- ChatGPT 계정으로 로그인한 Codex CLI (`codex.exe`)
+- 프로젝트 설정의 `$(ZEUSKIM_INC)` 및 `$(ZEUSKIM_LIB_VS2022_X64)` 경로를 사용하는 개발 환경. 이 프로젝트는 해당 경로의 라이브러리를 직접 사용하지 않습니다.
+
+## 빌드 및 사용
+
+`CodexUsage.sln`을 Visual Studio 2022에서 열어 `Release | x64`로 빌드합니다. 실행 파일은 `x64/Release/CodexUsage.exe`입니다. Visual Studio가 없는 사용자를 위한 바이너리 배포는 아직 제공하지 않습니다.
+
+실행 후 **Settings**에서 투명도(20~100%), 조회 주기(10~3600초), 남은 비율 Warning/Alert 기준(`0 ≤ Alert < Warning ≤ 100`), 자동 실행, 트레이 시작 여부를 설정합니다. 실행 파일 자동 검색이 실패하면 CLI 또는 GUI 경로를 지정할 수 있습니다. 설정은 현재 사용자 레지스트리의 `Citopia` 키에 저장됩니다. 자동 실행은 현재 사용자의 Windows `Run` 키에 실행 파일 경로를 등록합니다. 실행 파일을 이동했다면 새 위치에서 자동 실행 설정을 다시 저장하세요.
+
+**Codex CLI**는 새 콘솔에서 CLI를 열고 **Codex GUI**는 실행 중인 창을 표시하거나 설치된 앱을 실행합니다. **−** 버튼이나 시스템 최소화는 트레이로 숨깁니다. 트레이 아이콘 클릭은 창 복원, 오른쪽 클릭은 표시·새로 고침·종료 메뉴를 엽니다. 트레이 등록에 실패하면 창을 유지합니다.
+
+사용량은 [Codex App Server의 `account/rateLimits/read`](https://learn.chatgpt.com/docs/app-server)로 조회합니다. 서버 응답의 `usedPercent`를 남은 비율로 바꿔 표시합니다. CLI와 GUI가 다른 계정으로 로그인되어 있다면 값이 다를 수 있습니다. 앱은 로그인 토큰을 별도로 저장하지 않습니다. Windows 알림 설정과 방해 금지 모드에 따라 배너 표시 여부가 달라집니다.
+
+## 테스트
+
+`tests/UsageClientTests.vcxproj`를 `Release | x64`로 빌드한 뒤 `tests/bin/UsageClientTests.exe`를 실행합니다. 사용량 파싱, 경고 상태 전환, 자동 실행 레지스트리 등록·해제 등을 격리된 키에서 검증합니다. `--live` 옵션을 붙이면 현재 로그인된 CLI와 실제 통신도 시도합니다.
+
+## 아이콘
+
+`CodexUsage/res/CodexUsage-source.png`를 바탕으로 `tools/GenerateIcon.ps1`이 프로그램·트레이용 다중 해상도 ICO를 생성합니다. 노란색 ChatGPT 심볼과 사용량 그래프를 사용합니다. ChatGPT 명칭과 심볼은 OpenAI의 상표이며, 이 프로젝트는 OpenAI의 공식 제품이 아닙니다.
+
+## 변경 기록
+
+2026-09-26: 위젯, Codex 사용량 조회, 테마·투명도·설정, 트레이·알림·자동 시작, 아이콘을 구현했습니다. 아이콘 심볼은 `#EFE480`, 가운데 막대는 `#FACC15`입니다. Release x64 빌드와 자동 시작 격리 테스트를 포함한 24개 테스트를 통과했습니다.
