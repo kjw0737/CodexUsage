@@ -1,4 +1,4 @@
-# CodexUsage for macOS
+﻿# CodexUsage for macOS
 
 Windows MFC 위젯과 같은 Codex 사용량 정보를 macOS 메뉴 막대와 작은 제목 없는 창에 표시합니다. 단기·장기 남은 비율, 리셋 시각·크레딧, 다음 조회 카운트다운, Warning/Alert 색상과 회복 알림을 지원합니다. 자동 밝음/어두움 테마, 투명도, 항상 위, 조회 주기, 로그인 시 실행, 시작 시 메뉴 막대에 숨기기도 설정할 수 있습니다.
 
@@ -24,4 +24,4 @@ Mac에서 저장소를 받은 뒤 다음 명령을 실행합니다.
 
 ## 검증 상태
 
-Swift 테스트와 `.app` 빌드 명령은 스크립트에 포함되어 있습니다. 이 저장소의 macOS 코드는 Windows에서 작성했으므로 실제 Mac 빌드, 알림 권한, 로그인 항목 및 앱 실행 검증이 필요합니다. 배포용으로 공증된 DMG는 아직 제공하지 않습니다.
+GitHub Actions의 Mac 러너에서 Apple Silicon·Intel 범용 앱 빌드와 4개 Swift 테스트가 통과했습니다. [macOS 미리보기 ZIP](https://github.com/kjw0737/CodexUsage/releases/tag/v1.0.2026.0926-mac-preview)을 받을 수 있습니다. 실제 사용자 세션에서 화면, CLI 연결, 알림 권한, 로그인 항목 동작은 추가 검증이 필요합니다. 배포용으로 공증된 DMG는 아직 제공하지 않습니다.

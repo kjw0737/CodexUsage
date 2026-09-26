@@ -37,7 +37,7 @@ GitHub Releases의 `CodexUsage-Setup-1.0.2026.0926-x64.exe`를 받아 실행합�
 
 ## macOS
 
-macOS 13 이상용 메뉴 막대 앱을 `macOS/`에 별도 구현했습니다. Windows 위젯과 같은 Codex 사용량 조회·경고·설정·CLI/GUI 실행을 지원합니다. [macOS 빌드 및 사용법](macOS/README.md)을 참조하세요. macOS 빌드·테스트는 GitHub Actions에서 검증합니다.
+macOS 13 이상용 메뉴 막대 앱을 `macOS/`에 별도 구현했습니다. Windows 위젯과 같은 Codex 사용량 조회·경고·설정·CLI/GUI 실행을 지원합니다. [macOS 미리보기 다운로드](https://github.com/kjw0737/CodexUsage/releases/tag/v1.0.2026.0926-mac-preview)와 [빌드 및 사용법](macOS/README.md)을 참조하세요. Apple Silicon·Intel 범용 앱 빌드와 4개 Swift 테스트가 GitHub Actions에서 통과했습니다.
 ## 테스트
 
 `tests/UsageClientTests.vcxproj`를 `Release | x64`로 빌드한 뒤 `tests/bin/UsageClientTests.exe`를 실행합니다. 사용량 파싱, 경고 상태 전환, 자동 실행 레지스트리 등록·해제 등을 격리된 키에서 검증합니다. `--live` 옵션을 붙이면 현재 로그인된 CLI와 실제 통신도 시도합니다.

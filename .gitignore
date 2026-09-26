@@ -43,5 +43,6 @@ Agents.md
 # macOS SwiftPM and Xcode outputs
 macOS/.build/
 macOS/.swiftpm/
+macOS/dist/
 .DS_Store
 *.xcuserstate
