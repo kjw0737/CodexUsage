@@ -1,0 +1,32 @@
+name: macOS build
+
+on:
+  push:
+    paths:
+      - "macOS/**"
+      - ".github/workflows/macos.yml"
+      - "CodexUsage/res/CodexUsage*.png"
+  pull_request:
+    paths:
+      - "macOS/**"
+      - ".github/workflows/macos.yml"
+      - "CodexUsage/res/CodexUsage*.png"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and test macOS app
+        run: zsh macOS/build-app.sh
+      - name: Archive app
+        run: ditto -c -k --sequesterRsrc --keepParent macOS/dist/CodexUsageMac.app macOS/dist/CodexUsageMac.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: CodexUsageMac
+          path: macOS/dist/CodexUsageMac.zip
+          if-no-files-found: error

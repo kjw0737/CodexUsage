@@ -7,7 +7,6 @@
 x64/
 Win32/
 installer/build/
-dist/
 *.aps
 *.ipch
 *.sdf
@@ -40,3 +39,9 @@ config.toml
 *.tmp
 # Local agent instructions and SVN workflow
 Agents.md
+
+# macOS SwiftPM and Xcode outputs
+macOS/.build/
+macOS/.swiftpm/
+.DS_Store
+*.xcuserstate

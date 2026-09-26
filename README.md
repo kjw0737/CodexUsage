@@ -35,6 +35,9 @@ GitHub Releases의 `CodexUsage-Setup-1.0.2026.0926-x64.exe`를 받아 실행합�
 
 사용량은 [Codex App Server의 `account/rateLimits/read`](https://learn.chatgpt.com/docs/app-server)로 조회합니다. 서버 응답의 `usedPercent`를 남은 비율로 바꿔 표시합니다. CLI와 GUI가 다른 계정으로 로그인되어 있다면 값이 다를 수 있습니다. 앱은 로그인 토큰을 별도로 저장하지 않습니다. Windows 알림 설정과 방해 금지 모드에 따라 배너 표시 여부가 달라집니다.
 
+## macOS
+
+macOS 13 이상용 메뉴 막대 앱을 `macOS/`에 별도 구현했습니다. Windows 위젯과 같은 Codex 사용량 조회·경고·설정·CLI/GUI 실행을 지원합니다. [macOS 빌드 및 사용법](macOS/README.md)을 참조하세요. macOS 빌드·테스트는 GitHub Actions에서 검증합니다.
 ## 테스트
 
 `tests/UsageClientTests.vcxproj`를 `Release | x64`로 빌드한 뒤 `tests/bin/UsageClientTests.exe`를 실행합니다. 사용량 파싱, 경고 상태 전환, 자동 실행 레지스트리 등록·해제 등을 격리된 키에서 검증합니다. `--live` 옵션을 붙이면 현재 로그인된 CLI와 실제 통신도 시도합니다.
@@ -47,3 +50,4 @@ GitHub Releases의 `CodexUsage-Setup-1.0.2026.0926-x64.exe`를 받아 실행합�
 
 2026-09-26: 위젯, Codex 사용량 조회, 테마·투명도·설정, 트레이·알림·자동 시작, 아이콘을 구현했습니다. 아이콘 심볼은 `#EFE480`, 가운데 막대는 `#FACC15`입니다. Release x64 빌드와 자동 시작 격리 테스트를 포함한 24개 테스트를 통과했습니다.
 2026-09-26 14:21: Inno Setup 6 기반 사용자별 설치·제거 프로그램과 Visual C++ 런타임 포함 빌드 스크립트를 추가했습니다. Release x64 빌드, 설치·제거를 테스트했습니다.
+2026-09-26 15:55: macOS 메뉴 막대 위젯, Codex 사용량 조회, 설정·알림·로그인 항목과 앱 번들 빌드 및 Mac CI를 추가했습니다.
