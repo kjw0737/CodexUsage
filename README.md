@@ -39,7 +39,7 @@ GitHub Releases의 `CodexUsage-Setup-1.0.2026.0926-x64.exe`를 받아 실행합�
 
 ## macOS
 
-macOS 13 이상용 메뉴 막대 앱을 `macOS/`에 별도 구현했습니다. Windows 위젯과 같은 Codex 사용량 조회·경고·설정·CLI/GUI 실행을 지원합니다. CSV 기록과 1시간·1일·30일 사용량 그래프도 현재 소스에 추가했습니다. [macOS 미리보기 다운로드](https://github.com/kjw0737/CodexUsage/releases/tag/v1.0.2026.0926-mac-preview)와 [빌드 및 사용법](macOS/README.md)을 참조하세요. Apple Silicon·Intel 범용 앱 빌드와 4개 Swift 테스트가 GitHub Actions에서 통과했습니다.
+macOS 13 이상용 메뉴 막대 앱을 `macOS/`에 별도 구현했습니다. Windows 위젯과 같은 Codex 사용량 조회·경고·설정·CLI/GUI 실행을 지원합니다. CSV 기록과 1시간·1일·30일 사용량 그래프도 현재 소스에 추가했습니다. [이전 macOS 미리보기(그래프 미포함)](https://github.com/kjw0737/CodexUsage/releases/tag/v1.0.2026.0926-mac-preview)와 [빌드 및 사용법](macOS/README.md)을 참조하세요. Apple Silicon·Intel 범용 앱 빌드와 7개 Swift 테스트가 GitHub Actions에서 통과했습니다.
 
 ## 테스트
 
@@ -58,3 +58,4 @@ macOS 13 이상용 메뉴 막대 앱을 `macOS/`에 별도 구현했습니다. W
 2026-09-26 21:48: History 창에 Windows 다크/라이트 테마를 적용하고 25·50·75% 점선 기준선을 추가했습니다.
 2026-09-26 21:55: History 그래프의 측정 지점에 마우스를 올리면 시각과 5시간·주간 잔여량을 표시하도록 했습니다.
 2026-09-26 22:58: macOS 앱에 일별 CSV 사용량 기록, 기간별 그래프·데이터 이동·점 호버 표시와 기존 설정 마이그레이션을 추가했습니다.
+2026-09-26 23:40: Mac CI에서 범용 앱 빌드와 Swift 테스트 7개가 통과했습니다.

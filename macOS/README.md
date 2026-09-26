@@ -28,6 +28,6 @@ Mac에서 저장소를 받은 뒤 다음 명령을 실행합니다.
 
 ## 검증 상태
 
-기존 공개 버전은 GitHub Actions의 Mac 러너에서 Apple Silicon·Intel 범용 앱 빌드와 4개 Swift 테스트가 통과했습니다. 새 CSV 그래프 코드는 Mac에서 아직 빌드·실행 검증하지 못했습니다. [macOS 미리보기 ZIP](https://github.com/kjw0737/CodexUsage/releases/tag/v1.0.2026.0926-mac-preview)을 받을 수 있습니다. 이 기존 미리보기 ZIP에는 CSV 그래프 기능이 포함되지 않습니다. 실제 사용자 세션에서 화면, CLI 연결, 알림 권한, 로그인 항목 동작은 추가 검증이 필요합니다. 배포용으로 공증된 DMG는 아직 제공하지 않습니다.
+현재 소스는 GitHub Actions의 Mac 러너에서 Apple Silicon·Intel 범용 앱 빌드와 CSV 기능을 포함한 7개 Swift 테스트가 통과했습니다. [macOS 미리보기 ZIP](https://github.com/kjw0737/CodexUsage/releases/tag/v1.0.2026.0926-mac-preview)을 받을 수 있습니다. 이 기존 미리보기 ZIP에는 CSV 그래프 기능이 포함되지 않습니다. 실제 사용자 세션에서 화면, CLI 연결, 알림 권한, 로그인 항목 동작은 추가 검증이 필요합니다. 배포용으로 공증된 DMG는 아직 제공하지 않습니다.
 
 창의 버튼이 아닌 배경과 텍스트 영역을 드래그하면 창을 이동할 수 있습니다.
