@@ -183,7 +183,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="CodexUsage.h" /><ClInclude Include="UsageClient.h" /><ClInclude Include="UsageAlerts.h" /><ClInclude Include="WidgetTray.h" /><ClInclude Include="HoverButton.h" /><ClInclude Include="StartupRegistration.h" /><ClInclude Include="WidgetSettings.h" /><ClInclude Include="CodexLauncher.h" />
+    <ClInclude Include="CodexUsage.h" /><ClInclude Include="UsageClient.h" /><ClInclude Include="UsageAlerts.h" /><ClInclude Include="WidgetTray.h" /><ClInclude Include="HoverButton.h" /><ClInclude Include="StartupRegistration.h" /><ClInclude Include="WidgetSettings.h" /><ClInclude Include="CodexLauncher.h" /><ClInclude Include="UsageHistory.h" />
     <ClInclude Include="CodexUsageDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
@@ -191,7 +191,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CodexUsage.cpp" /><ClCompile Include="UsageClient.cpp" /><ClCompile Include="WidgetTray.cpp" /><ClCompile Include="HoverButton.cpp" /><ClCompile Include="StartupRegistration.cpp" /><ClCompile Include="WidgetSettings.cpp" /><ClCompile Include="CodexLauncher.cpp" />
+    <ClCompile Include="CodexUsage.cpp" /><ClCompile Include="UsageClient.cpp" /><ClCompile Include="WidgetTray.cpp" /><ClCompile Include="HoverButton.cpp" /><ClCompile Include="StartupRegistration.cpp" /><ClCompile Include="WidgetSettings.cpp" /><ClCompile Include="CodexLauncher.cpp" /><ClCompile Include="UsageHistory.cpp" />
     <ClCompile Include="CodexUsageDlg.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

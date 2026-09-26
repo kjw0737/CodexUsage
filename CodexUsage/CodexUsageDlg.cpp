@@ -2,7 +2,9 @@
 #include "Resource.h"
 #include "CodexUsageDlg.h"
 #include "CodexLauncher.h"
+#include "UsageHistory.h"
 #include <ctime>
+
 namespace { constexpr UINT TrayMessage = WM_APP + 10; UINT TaskbarCreated = RegisterWindowMessage(L"TaskbarCreated"); }
 namespace
 {
@@ -38,7 +40,7 @@ BEGIN_MESSAGE_MAP(CCodexUsageDlg, CDialogEx)
     ON_WM_WINDOWPOSCHANGING()
     ON_MESSAGE(TrayMessage, &CCodexUsageDlg::OnTray)
     ON_REGISTERED_MESSAGE(TaskbarCreated, &CCodexUsageDlg::OnTaskbarCreated)
-    ON_CONTROL_RANGE(BN_CLICKED, IDC_CMD_CODEX, IDC_REFRESH, &CCodexUsageDlg::OnAction)
+    ON_CONTROL_RANGE(BN_CLICKED, IDC_CMD_CODEX, IDC_HISTORY, &CCodexUsageDlg::OnAction)
 END_MESSAGE_MAP()
 CRect CCodexUsageDlg::Rect(int x, int y, int width, int height) const
 {
@@ -58,10 +60,10 @@ BOOL CCodexUsageDlg::OnInitDialog()
     LOGFONT font{}; font.lfHeight = -12; wcscpy_s(font.lfFaceName, L"Segoe UI");
     font_.CreateFontIndirect(&font); font.lfHeight = -16; font.lfWeight = FW_SEMIBOLD;
     titleFont_.CreateFontIndirect(&font);
-    const wchar_t* labels[] = { L"Codex CLI", L"Codex GUI", L"Settings", L"−", L"×", L"Refresh" };
+    const wchar_t* labels[] = { L"Codex CLI", L"Codex GUI", L"Settings", L"−", L"×", L"Refresh", L"" };
     const CRect rectangles[] = { Rect(16,10,82,28), Rect(104,10,82,28), Rect(192,10,76,28),
-        Rect(296,10,24,28), Rect(322,10,24,28), Rect(258,199,82,28) };
-    for (int i = 0; i < 6; ++i)
+        Rect(296,10,24,28), Rect(322,10,24,28), Rect(258,199,82,28), Rect(225,199,28,28) };
+    for (int i = 0; i < 7; ++i)
     {
         buttons_[i].Create(labels[i], WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_OWNERDRAW,
             rectangles[i], this, IDC_CMD_CODEX + i);
@@ -71,6 +73,7 @@ BOOL CCodexUsageDlg::OnInitDialog()
     CRect info = Rect(18, 202, 230, 26); tooltip_.AddTool(this, L"리셋 크레딧 만료일", info, 1);
     CRect status = Rect(18, 240, 324, 26); tooltip_.AddTool(this, L"Codex 연결 상태", status, 2);
     tooltip_.AddTool(&buttons_[3], L"트레이로 숨기기"); tooltip_.AddTool(&buttons_[4], L"종료");
+    tooltip_.AddTool(&buttons_[6], L"저장된 사용량 그래프");
     const bool trayReady = tray_.Add(m_hWnd, AfxGetApp()->LoadIcon(IDR_MAINFRAME), TrayMessage);
     startupHidden_ = settings_.startInTray && trayReady;
     ApplySettings(); SetTimer(1, 250, nullptr); Refresh(); return TRUE;
@@ -107,6 +110,12 @@ void CCodexUsageDlg::OnTimer(UINT_PTR id)
                 CString notice = alerts_.Update(value, settings_.warning, settings_.alert, warning);
                 tray_.Notify(notice, warning);
                 snapshot_ = value;
+                if (settings_.saveCsv && value.primary.available && value.secondary.available &&
+                    !UsageHistory::Append(value) && !csvErrorShown_)
+                {
+                    csvErrorShown_ = true;
+                    AfxMessageBox(L"사용량 CSV를 프로그램 실행 폴더에 저장하지 못했습니다. 폴더 쓰기 권한을 확인하세요.");
+                }
             }
             tray_.Update(snapshot_, stale_);
             tooltip_.UpdateTipText(snapshot_.expirations.IsEmpty() ? L"상세 정보 없음" : snapshot_.expirations, this, 1);
@@ -151,7 +160,7 @@ void CCodexUsageDlg::OnPaint()
     CString credits = L"Reset credits: unavailable";
     if (snapshot_.resetCredits >= 0) credits.Format(L"Reset x %d", snapshot_.resetCredits);
     text(credits, Rect(18,181,230,20), theme_.foreground);
-    text(L"Expires: " + (snapshot_.expirations.IsEmpty() ? CString(L"—") : snapshot_.expirations), Rect(18,203,230,20), theme_.muted);
+    text(L"Expires: " + (snapshot_.expirations.IsEmpty() ? CString(L"—") : snapshot_.expirations), Rect(18,203,200,20), theme_.muted);
     CString updated = L"Updated: —";
     if (snapshot_.updated)
     {
@@ -204,6 +213,7 @@ void CCodexUsageDlg::OnAction(UINT id)
                 const bool changed = settings_.cliPath != dialog.settings.cliPath;
                 if (changed || settings_.warning != dialog.settings.warning || settings_.alert != dialog.settings.alert) alerts_.Reset();
                 settings_ = dialog.settings; settings_.Save(); ApplySettings();
+                csvErrorShown_ = false;
                 if (changed) { client_.Stop(); snapshot_ = UsageSnapshot(); }
                 Refresh();
             }
@@ -212,6 +222,11 @@ void CCodexUsageDlg::OnAction(UINT id)
     case IDC_MINIMIZE: HideToTray(); break;
     case IDC_CLOSE_WIDGET: OnCancel(); break;
     case IDC_REFRESH: Refresh(); break;
+    case IDC_HISTORY:
+        if (!settings_.saveCsv)
+            AfxMessageBox(L"그래프를 보려면 Settings에서 수집 데이터를 CSV로 저장을 활성화하세요.");
+        else { HistoryDialog dialog(this); dialog.DoModal(); }
+        break;
     }
 }
 void CCodexUsageDlg::OnCancel() { KillTimer(1); tray_.Remove(); client_.Stop(); CDialogEx::OnCancel(); }

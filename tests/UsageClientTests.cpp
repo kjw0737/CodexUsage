@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "UsageClient.h"
 #include "UsageAlerts.h"
+#include "UsageHistory.h"
 #include "StartupRegistration.h"
 #include <winrt/base.h>
 #include <iostream>
@@ -73,6 +74,21 @@ int wmain(int argc, wchar_t** argv)
         RegGetValue(HKEY_CURRENT_USER, testKey, L"Unrelated", RRF_RT_REG_DWORD, nullptr, &marker, &markerBytes);
         Check(marker == 7 && startup.SetEnabled(false) == ERROR_SUCCESS, "startup removal preserves other entries and is idempotent");
         RegDeleteTree(HKEY_CURRENT_USER, testKey);
+        UsageSnapshot historySample;
+        historySample.connected = true;
+        historySample.updated = time(nullptr);
+        historySample.primary.available = true;
+        historySample.primary.remaining = 37.25;
+        historySample.secondary.available = true;
+        historySample.secondary.remaining = 88.5;
+        Check(UsageHistory::Append(historySample), "append daily CSV sample");
+        auto savedHistory = UsageHistory::Read();
+        Check(!savedHistory.empty() &&
+              savedHistory.back().fiveHour == 37.25 &&
+              savedHistory.back().weekly == 88.5,
+              "read daily CSV sample");
+        historySample.secondary.available = false;
+        Check(!UsageHistory::Append(historySample), "incomplete usage is not recorded");
         UsageClient client;
         client.Start(L"Z:\\missing-codex.exe");
         auto deadline = GetTickCount64() + 3000;

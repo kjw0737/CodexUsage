@@ -12,6 +12,6 @@
     <ClCompile><LanguageStandard>stdcpp17</LanguageStandard><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalIncludeDirectories>..\CodexUsage;$(ZEUSKIM_INC);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories><PreprocessorDefinitions>_CONSOLE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions><RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary><WarningLevel>Level3</WarningLevel></ClCompile>
     <Link><SubSystem>Console</SubSystem><AdditionalLibraryDirectories>$(ZEUSKIM_LIB_VS2022_X64);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories></Link>
   </ItemDefinitionGroup>
-  <ItemGroup><ClCompile Include="UsageClientTests.cpp" /><ClCompile Include="..\CodexUsage\StartupRegistration.cpp" /><ClCompile Include="..\CodexUsage\UsageClient.cpp" /></ItemGroup>
+  <ItemGroup><ClCompile Include="UsageClientTests.cpp" /><ClCompile Include="..\CodexUsage\StartupRegistration.cpp" /><ClCompile Include="..\CodexUsage\UsageClient.cpp" /><ClCompile Include="..\CodexUsage\UsageHistory.cpp" /><ClCompile Include="..\CodexUsage\WidgetSettings.cpp" /><ClCompile Include="..\CodexUsage\HoverButton.cpp" /></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

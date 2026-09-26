@@ -11,6 +11,7 @@ struct WidgetSettings
     bool topmost = false;
     bool autoStart = false;
     bool startInTray = false;
+    bool saveCsv = false;
     CString cliPath, guiPath;
     void Load();
     void Save() const;

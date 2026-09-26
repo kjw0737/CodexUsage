@@ -10,10 +10,33 @@ struct WidgetPreferences: Codable, Equatable {
     var topmost = false
     var runAtLogin = false
     var startInTray = false
+    var saveCsv = false
     var warning = 50
     var alert = 20
     var cliPath = ""
     var guiPath = ""
+
+    init() {}
+
+    // Older saved settings have no saveCsv key; keep the other preferences on upgrade.
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        opacity = try values.decodeIfPresent(Int.self, forKey: .opacity) ?? 90
+        interval = try values.decodeIfPresent(Int.self, forKey: .interval) ?? 60
+        topmost = try values.decodeIfPresent(Bool.self, forKey: .topmost) ?? false
+        runAtLogin = try values.decodeIfPresent(Bool.self, forKey: .runAtLogin) ?? false
+        startInTray = try values.decodeIfPresent(Bool.self, forKey: .startInTray) ?? false
+        saveCsv = try values.decodeIfPresent(Bool.self, forKey: .saveCsv) ?? false
+        warning = try values.decodeIfPresent(Int.self, forKey: .warning) ?? 50
+        alert = try values.decodeIfPresent(Int.self, forKey: .alert) ?? 20
+        cliPath = try values.decodeIfPresent(String.self, forKey: .cliPath) ?? ""
+        guiPath = try values.decodeIfPresent(String.self, forKey: .guiPath) ?? ""
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case opacity, interval, topmost, runAtLogin, startInTray, saveCsv
+        case warning, alert, cliPath, guiPath
+    }
 }
 
 final class ForegroundNotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
@@ -27,6 +50,7 @@ final class ForegroundNotificationDelegate: NSObject, UNUserNotificationCenterDe
 final class UsageStore: ObservableObject {
     @Published private(set) var snapshot: UsageSnapshot?
     @Published private(set) var errorMessage: String?
+    @Published private(set) var historyErrorMessage: String?
     @Published private(set) var preferences: WidgetPreferences
     @Published private(set) var nextRefresh = Date()
     @Published private(set) var currentTime = Date()
@@ -35,6 +59,8 @@ final class UsageStore: ObservableObject {
     private var timer: Timer?
     private var busy = false
     private let alerts = AlertTracker()
+    private let history = HistoryStore()
+    private var csvWriteFailed = false
     private let notificationDelegate = ForegroundNotificationDelegate()
     private let defaultsKey = "CodexUsageMac.Preferences"
 
@@ -84,6 +110,20 @@ final class UsageStore: ObservableObject {
                 }.value
                 snapshot = value
                 errorMessage = nil
+                if preferences.saveCsv,
+                   value.short.remaining != nil, value.long.remaining != nil {
+                    do {
+                        try history.append(value)
+                        historyErrorMessage = nil
+                        csvWriteFailed = false
+                    } catch {
+                        historyErrorMessage = "CSV 저장 실패: \(error.localizedDescription)"
+                        if !csvWriteFailed {
+                            csvWriteFailed = true
+                            notify("사용량 CSV를 저장하지 못했습니다. 저장 폴더 권한을 확인하세요.")
+                        }
+                    }
+                }
                 let messages = alerts.update(value, warning: preferences.warning, alert: preferences.alert)
                 if !messages.isEmpty { notify(messages.joined(separator: "\n")) }
             } catch {
@@ -104,6 +144,10 @@ final class UsageStore: ObservableObject {
             }
         }
         preferences = value
+        if !value.saveCsv {
+            historyErrorMessage = nil
+            csvWriteFailed = false
+        }
         if value.warning != previous.warning || value.alert != previous.alert {
             alerts.reset()
         }
@@ -118,7 +162,7 @@ final class UsageStore: ObservableObject {
     var tooltip: String {
         let short = snapshot?.short.remaining.map { "\(Int($0.rounded()))%" } ?? "N/A"
         let long = snapshot?.long.remaining.map { "\(Int($0.rounded()))%" } ?? "N/A"
-        return "CodexUsage\n5 Hour: \(short) · Weekly: \(long)\n\(errorMessage ?? "연결됨")"
+        return "CodexUsage\n5 Hour: \(short) · Weekly: \(long)\n\(errorMessage ?? historyErrorMessage ?? "연결됨")"
     }
 
     private func notify(_ message: String) {

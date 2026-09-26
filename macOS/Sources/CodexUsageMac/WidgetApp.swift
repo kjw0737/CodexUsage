@@ -28,6 +28,28 @@ struct HoverButton: View {
     }
 }
 
+struct HoverIconButton: View {
+    let action: () -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "chart.xyaxis.line")
+                .font(.system(size: 13, weight: .medium))
+                .frame(width: 27, height: 24)
+                .background(hovered ? Color.accentColor.opacity(0.25) : Color.primary.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(hovered ? Color.accentColor.opacity(0.7) : Color.primary.opacity(0.13))
+                }
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+        .help("Saved usage graph")
+    }
+}
+
 struct QuotaRow: View {
     let title: String
     let quota: QuotaWindow
@@ -81,6 +103,7 @@ struct WidgetView: View {
     let onCLI: () -> Void
     let onGUI: () -> Void
     let onSettings: () -> Void
+    let onHistory: () -> Void
     let onMinimize: () -> Void
     let onClose: () -> Void
 
@@ -106,6 +129,7 @@ struct WidgetView: View {
             HStack {
                 Text("Resets × \(store.snapshot?.resetCredits.map(String.init) ?? "N/A")")
                 Spacer()
+                HoverIconButton(action: onHistory)
                 HoverButton(title: "Refresh", compact: false) { store.refresh() }
             }
             .font(.system(size: 11))
@@ -116,8 +140,9 @@ struct WidgetView: View {
                 .lineLimit(1)
             Spacer(minLength: 0)
             HStack(spacing: 4) {
-                Text(store.errorMessage ?? "Codex: connected")
-                    .foregroundStyle(store.errorMessage == nil ? Color.green : Color.red)
+                Text(store.errorMessage ?? store.historyErrorMessage ?? "Codex: connected")
+                    .foregroundStyle(store.errorMessage != nil ? Color.red :
+                                     store.historyErrorMessage != nil ? Color.orange : Color.green)
                     .lineLimit(1)
                 Spacer(minLength: 2)
                 Text("Updated: " + (store.snapshot?.updatedAt.formatted(date: .omitted, time: .standard) ?? "--:--:--") +
@@ -151,6 +176,7 @@ struct SettingsView: View {
             Toggle("Always on top", isOn: $draft.topmost)
             Toggle("Run at login", isOn: $draft.runAtLogin)
             Toggle("Start in menu bar", isOn: $draft.startInTray)
+            Toggle("Save usage data to CSV", isOn: $draft.saveCsv)
             Text("Codex CLI path (blank: auto-detect)").font(.caption)
             TextField("/opt/homebrew/bin/codex", text: $draft.cliPath)
             Text("Codex GUI .app path (blank: auto-detect)").font(.caption)
@@ -189,6 +215,10 @@ struct SettingsView: View {
     }
 }
 
+final class DraggableHostingView<Content: View>: NSHostingView<Content> {
+    override var mouseDownCanMoveWindow: Bool { true }
+}
+
 final class WidgetWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
@@ -199,6 +229,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = UsageStore()
     private var window: WidgetWindow!
     private var settingsWindow: NSWindow?
+    private var historyWindow: NSWindow?
     private var statusItem: NSStatusItem!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -208,12 +239,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onCLI: { [weak self] in self?.openCLI() },
             onGUI: { [weak self] in self?.openGUI() },
             onSettings: { [weak self] in self?.showSettings() },
+            onHistory: { [weak self] in self?.showHistory() },
             onMinimize: { [weak self] in self?.hideWindow() },
             onClose: { NSApp.terminate(nil) }
         )
         window = WidgetWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 280),
                               styleMask: [.borderless], backing: .buffered, defer: false)
-        window.contentView = NSHostingView(rootView: view)
+        window.contentView = DraggableHostingView(rootView: view)
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = true
@@ -299,7 +331,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.settingsWindow = nil
             }
         )
-        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 410, height: 455),
+        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 410, height: 480),
                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
         panel.title = "CodexUsage Settings"
         panel.contentView = NSHostingView(rootView: settings)
@@ -308,6 +340,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow = panel
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func showHistory() {
+        guard store.preferences.saveCsv else {
+            showError("그래프를 보려면 Settings에서 Save usage data to CSV를 활성화하세요.")
+            return
+        }
+        do {
+            let points = try HistoryStore().read()
+            let view = HistoryView(points: points)
+            if historyWindow == nil {
+                let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 460),
+                                     styleMask: [.titled, .closable, .resizable],
+                                     backing: .buffered, defer: false)
+                panel.title = "Codex Usage History"
+                panel.minSize = NSSize(width: 530, height: 340)
+                panel.isReleasedWhenClosed = false
+                panel.center()
+                historyWindow = panel
+            }
+            historyWindow?.contentView = NSHostingView(rootView: view)
+            historyWindow?.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        } catch {
+            showError("CSV 기록을 읽지 못했습니다: \(error.localizedDescription)")
+        }
     }
 
     private func openCLI() {

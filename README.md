@@ -35,9 +35,12 @@ GitHub Releases의 `CodexUsage-Setup-1.0.2026.0926-x64.exe`를 받아 실행합�
 
 사용량은 [Codex App Server의 `account/rateLimits/read`](https://learn.chatgpt.com/docs/app-server)로 조회합니다. 서버 응답의 `usedPercent`를 남은 비율로 바꿔 표시합니다. CLI와 GUI가 다른 계정으로 로그인되어 있다면 값이 다를 수 있습니다. 앱은 로그인 토큰을 별도로 저장하지 않습니다. Windows 알림 설정과 방해 금지 모드에 따라 배너 표시 여부가 달라집니다.
 
+설정에서 **Save usage data to CSV**를 켜면 5시간·주간 잔여량이 모두 정상 조회될 때마다 실행 파일 폴더에 usageYYYYMMDD.csv를 만듭니다. 열은 date_time,5_hour_remaining,weekly_remaining이며 남은 비율(%)을 기록합니다. **Refresh** 옆 그래프 버튼에서 1시간·1일·30일 꺾은선 그래프를 선택하고 첫/이전/다음/마지막 데이터 구간으로 이동할 수 있습니다. CSV를 사용하지 않을 때는 그래프 버튼이 활성화 안내를 표시합니다. 설치본은 사용자 LocalAppData 폴더에 기록하며, CSV 파일은 개인 사용 기록이므로 Git에서 제외합니다.
+
 ## macOS
 
-macOS 13 이상용 메뉴 막대 앱을 `macOS/`에 별도 구현했습니다. Windows 위젯과 같은 Codex 사용량 조회·경고·설정·CLI/GUI 실행을 지원합니다. [macOS 미리보기 다운로드](https://github.com/kjw0737/CodexUsage/releases/tag/v1.0.2026.0926-mac-preview)와 [빌드 및 사용법](macOS/README.md)을 참조하세요. Apple Silicon·Intel 범용 앱 빌드와 4개 Swift 테스트가 GitHub Actions에서 통과했습니다.
+macOS 13 이상용 메뉴 막대 앱을 `macOS/`에 별도 구현했습니다. Windows 위젯과 같은 Codex 사용량 조회·경고·설정·CLI/GUI 실행을 지원합니다. CSV 기록과 1시간·1일·30일 사용량 그래프도 현재 소스에 추가했습니다. [macOS 미리보기 다운로드](https://github.com/kjw0737/CodexUsage/releases/tag/v1.0.2026.0926-mac-preview)와 [빌드 및 사용법](macOS/README.md)을 참조하세요. Apple Silicon·Intel 범용 앱 빌드와 4개 Swift 테스트가 GitHub Actions에서 통과했습니다.
+
 ## 테스트
 
 `tests/UsageClientTests.vcxproj`를 `Release | x64`로 빌드한 뒤 `tests/bin/UsageClientTests.exe`를 실행합니다. 사용량 파싱, 경고 상태 전환, 자동 실행 레지스트리 등록·해제 등을 격리된 키에서 검증합니다. `--live` 옵션을 붙이면 현재 로그인된 CLI와 실제 통신도 시도합니다.
@@ -51,3 +54,7 @@ macOS 13 이상용 메뉴 막대 앱을 `macOS/`에 별도 구현했습니다. W
 2026-09-26: 위젯, Codex 사용량 조회, 테마·투명도·설정, 트레이·알림·자동 시작, 아이콘을 구현했습니다. 아이콘 심볼은 `#EFE480`, 가운데 막대는 `#FACC15`입니다. Release x64 빌드와 자동 시작 격리 테스트를 포함한 24개 테스트를 통과했습니다.
 2026-09-26 14:21: Inno Setup 6 기반 사용자별 설치·제거 프로그램과 Visual C++ 런타임 포함 빌드 스크립트를 추가했습니다. Release x64 빌드, 설치·제거를 테스트했습니다.
 2026-09-26 15:55: macOS 메뉴 막대 위젯, Codex 사용량 조회, 설정·알림·로그인 항목과 앱 번들 빌드 및 Mac CI를 추가했습니다.
+2026-09-26 20:50: macOS 배경 드래그 수정, Windows 일별 CSV 사용량 기록과 기간별 그래프·탐색 기능을 추가했습니다.
+2026-09-26 21:48: History 창에 Windows 다크/라이트 테마를 적용하고 25·50·75% 점선 기준선을 추가했습니다.
+2026-09-26 21:55: History 그래프의 측정 지점에 마우스를 올리면 시각과 5시간·주간 잔여량을 표시하도록 했습니다.
+2026-09-26 22:58: macOS 앱에 일별 CSV 사용량 기록, 기간별 그래프·데이터 이동·점 호버 표시와 기존 설정 마이그레이션을 추가했습니다.

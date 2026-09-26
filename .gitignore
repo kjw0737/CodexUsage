@@ -46,3 +46,4 @@ macOS/.swiftpm/
 macOS/dist/
 .DS_Store
 *.xcuserstate
+usage????????.csv

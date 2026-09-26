@@ -15,13 +15,14 @@ private:
     UsageSnapshot snapshot_;
     WidgetTray tray_;
     UsageAlerts alerts_;
-    HoverButton buttons_[6];
+    HoverButton buttons_[7];
     CFont font_, titleFont_;
     CToolTipCtrl tooltip_;
     CString error_;
     ULONGLONG nextRefresh_ = 0;
     bool stale_ = false;
     bool startupHidden_ = false;
+    bool csvErrorShown_ = false;
     BOOL OnInitDialog() override;
     BOOL PreTranslateMessage(MSG*) override;
     void OnOK() override {}

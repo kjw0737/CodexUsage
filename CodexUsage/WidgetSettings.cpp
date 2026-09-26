@@ -16,6 +16,7 @@ void WidgetSettings::Load()
     topmost = app->GetProfileInt(L"Widget", L"Topmost", 0) != 0;
     autoStart = StartupRegistration().IsRegistered();
     startInTray = app->GetProfileInt(L"Widget", L"StartInTray", 0) != 0;
+    saveCsv = app->GetProfileInt(L"Widget", L"SaveCsv", 0) != 0;
     warning = (std::clamp)(static_cast<int>(app->GetProfileInt(L"Widget", L"Warning", 50)), 1, 100);
     alert = (std::clamp)(static_cast<int>(app->GetProfileInt(L"Widget", L"Alert", 20)), 0, warning - 1);
     cliPath = app->GetProfileString(L"Widget", L"CliPath");
@@ -28,6 +29,7 @@ void WidgetSettings::Save() const
     app->WriteProfileInt(L"Widget", L"Interval", interval);
     app->WriteProfileInt(L"Widget", L"Topmost", topmost);
     app->WriteProfileInt(L"Widget", L"StartInTray", startInTray);
+    app->WriteProfileInt(L"Widget", L"SaveCsv", saveCsv);
     app->WriteProfileInt(L"Widget", L"Warning", warning);
     app->WriteProfileInt(L"Widget", L"Alert", alert);
     app->WriteProfileString(L"Widget", L"CliPath", cliPath);
@@ -83,7 +85,18 @@ void WidgetTheme::DrawButton(LPDRAWITEMSTRUCT item)
     auto old = dc.SelectObject(CFont::FromHandle(reinterpret_cast<HFONT>(::SendMessage(item->hwndItem, WM_GETFONT, 0, 0))));
     CString label; ::GetWindowText(item->hwndItem, label.GetBuffer(256), 256); label.ReleaseBuffer();
     CRect labelRect(rect); if (selected) labelRect.OffsetRect(1, 1);
-    dc.DrawText(label, labelRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    if (item->CtlID == IDC_HISTORY)
+    {
+        CPen pen(PS_SOLID, 2, enabled ? foreground : muted);
+        auto previous = dc.SelectObject(&pen);
+        CRect chart(rect); chart.DeflateRect(5, 5);
+        dc.MoveTo(chart.left, chart.bottom - 2);
+        dc.LineTo(chart.left + chart.Width() / 3, chart.top + chart.Height() / 2);
+        dc.LineTo(chart.left + 2 * chart.Width() / 3, chart.top + 2 * chart.Height() / 3);
+        dc.LineTo(chart.right, chart.top + 1);
+        dc.SelectObject(previous);
+    }
+    else dc.DrawText(label, labelRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     if (item->itemState & ODS_FOCUS) { rect.DeflateRect(3, 3); dc.DrawFocusRect(rect); }
     dc.SelectObject(old); dc.Detach();
 }
@@ -110,6 +123,7 @@ BOOL SettingsDialog::OnInitDialog()
     CheckDlgButton(IDC_TOPMOST, settings.topmost ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(IDC_AUTOSTART, settings.autoStart ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(IDC_START_TRAY, settings.startInTray ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(IDC_SAVE_CSV, settings.saveCsv ? BST_CHECKED : BST_UNCHECKED);
     SetDlgItemText(IDC_CLI_PATH, settings.cliPath);
     SetDlgItemText(IDC_GUI_PATH, settings.guiPath);
     auto opacity = static_cast<CSpinButtonCtrl*>(GetDlgItem(IDC_OPACITY_SPIN));
@@ -119,6 +133,7 @@ BOOL SettingsDialog::OnInitDialog()
     SetWindowTheme(GetDlgItem(IDC_TOPMOST)->m_hWnd, L"", L"");
     SetWindowTheme(GetDlgItem(IDC_AUTOSTART)->m_hWnd, L"", L"");
     SetWindowTheme(GetDlgItem(IDC_START_TRAY)->m_hWnd, L"", L"");
+    SetWindowTheme(GetDlgItem(IDC_SAVE_CSV)->m_hWnd, L"", L"");
     return TRUE;
 }
 void SettingsDialog::OnOK()
@@ -154,6 +169,7 @@ void SettingsDialog::OnOK()
     }
     settings.autoStart = autoStart;
     settings.startInTray = IsDlgButtonChecked(IDC_START_TRAY) == BST_CHECKED;
+    settings.saveCsv = IsDlgButtonChecked(IDC_SAVE_CSV) == BST_CHECKED;
     settings.opacity = opacity; settings.interval = interval;
     settings.warning = warning; settings.alert = alert;
     settings.topmost = IsDlgButtonChecked(IDC_TOPMOST) == BST_CHECKED;
