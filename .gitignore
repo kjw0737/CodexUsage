@@ -6,6 +6,8 @@
 [Rr]elease/
 x64/
 Win32/
+installer/build/
+dist/
 *.aps
 *.ipch
 *.sdf

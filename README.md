@@ -19,6 +19,12 @@ Windows용 MFC Codex 사용량 위젯입니다. 로그인된 Codex CLI의 ChatGP
 - ChatGPT 계정으로 로그인한 Codex CLI (`codex.exe`)
 - 프로젝트 설정의 `$(ZEUSKIM_INC)` 및 `$(ZEUSKIM_LIB_VS2022_X64)` 경로를 사용하는 개발 환경. 이 프로젝트는 해당 경로의 라이브러리를 직접 사용하지 않습니다.
 
+## 설치 프로그램
+
+GitHub Releases의 `CodexUsage-Setup-1.0.2026.0926-x64.exe`를 받아 실행합니다. Windows 10/11 x64의 현재 사용자 폴더에 설치되므로 앱 자체에는 관리자 권한이 필요하지 않습니다. Visual C++ 런타임이 없거나 오래된 경우, 설치 파일에 포함된 Microsoft 공식 재배포 패키지가 설치되며 이 단계에서 Windows가 관리자 권한을 요청할 수 있습니다. 시작 메뉴 바로 가기가 만들어지고 바탕 화면 아이콘은 선택 사항입니다. Windows 앱 목록에서 제거할 수 있으며, 자동 시작 항목은 이 설치 경로를 가리킬 때만 삭제합니다. 개인 설정은 제거 후에도 보존됩니다.
+
+설치 파일을 직접 만들려면 Visual Studio 2022의 C++/MFC 구성 요소와 Inno Setup 6을 설치한 뒤 PowerShell에서 `./tools/BuildInstaller.ps1`을 실행합니다. 스크립트는 Release x64를 별도 폴더에 빌드하고 Visual Studio에 포함된 `vc_redist.x64.exe`를 묶어 `dist/`에 설치 파일을 만듭니다. 실행 중인 위젯의 EXE는 덮어쓰지 않습니다.
+
 ## 빌드 및 사용
 
 `CodexUsage.sln`을 Visual Studio 2022에서 열어 `Release | x64`로 빌드합니다. 실행 파일은 `x64/Release/CodexUsage.exe`입니다. Visual Studio가 없는 사용자를 위한 바이너리 배포는 아직 제공하지 않습니다.
@@ -40,3 +46,4 @@ Windows용 MFC Codex 사용량 위젯입니다. 로그인된 Codex CLI의 ChatGP
 ## 변경 기록
 
 2026-09-26: 위젯, Codex 사용량 조회, 테마·투명도·설정, 트레이·알림·자동 시작, 아이콘을 구현했습니다. 아이콘 심볼은 `#EFE480`, 가운데 막대는 `#FACC15`입니다. Release x64 빌드와 자동 시작 격리 테스트를 포함한 24개 테스트를 통과했습니다.
+2026-09-26 14:21: Inno Setup 6 기반 사용자별 설치·제거 프로그램과 Visual C++ 런타임 포함 빌드 스크립트를 추가했습니다. Release x64 빌드, 설치·제거를 테스트했습니다.
