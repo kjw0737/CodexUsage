@@ -15,7 +15,7 @@ intel_bin_dir="$(swift build --package-path "$script_dir" -c release --arch x86_
 
 mkdir -p "$contents/MacOS" "$contents/Resources"
 lipo -create "$arm_bin_dir/CodexUsageMac" "$intel_bin_dir/CodexUsageMac" -output "$contents/MacOS/CodexUsageMac"
-lipo -verify_arch arm64 x86_64 "$contents/MacOS/CodexUsageMac"
+lipo "$contents/MacOS/CodexUsageMac" -verify_arch arm64 x86_64
 cp "$repo_root/CodexUsage/res/CodexUsage.png" "$contents/Resources/CodexUsage.png"
 
 cat > "$contents/Info.plist" <<'PLIST'
