@@ -8,11 +8,14 @@ contents="$app/Contents"
 source_icon="$repo_root/CodexUsage/res/CodexUsage-source.png"
 
 swift test --package-path "$script_dir"
-swift build --package-path "$script_dir" -c release
-bin_dir="$(swift build --package-path "$script_dir" -c release --show-bin-path)"
+swift build --package-path "$script_dir" -c release --arch arm64
+arm_bin_dir="$(swift build --package-path "$script_dir" -c release --arch arm64 --show-bin-path)"
+swift build --package-path "$script_dir" -c release --arch x86_64
+intel_bin_dir="$(swift build --package-path "$script_dir" -c release --arch x86_64 --show-bin-path)"
 
 mkdir -p "$contents/MacOS" "$contents/Resources"
-cp "$bin_dir/CodexUsageMac" "$contents/MacOS/CodexUsageMac"
+lipo -create "$arm_bin_dir/CodexUsageMac" "$intel_bin_dir/CodexUsageMac" -output "$contents/MacOS/CodexUsageMac"
+lipo -verify_arch arm64 x86_64 "$contents/MacOS/CodexUsageMac"
 cp "$repo_root/CodexUsage/res/CodexUsage.png" "$contents/Resources/CodexUsage.png"
 
 cat > "$contents/Info.plist" <<'PLIST'
