@@ -27,7 +27,7 @@ GitHub Releases의 `CodexUsage-Setup-1.0.2026.0926-x64.exe`를 받아 실행합�
 
 ## 빌드 및 사용
 
-`CodexUsage.sln`을 Visual Studio 2022에서 열어 `Release | x64`로 빌드합니다. 실행 파일은 `x64/Release/CodexUsage.exe`입니다. Visual Studio가 없는 사용자를 위한 바이너리 배포는 아직 제공하지 않습니다.
+`CodexUsage.sln`을 Visual Studio 2022에서 열어 `Release | x64`로 빌드합니다. 실행 파일은 `x64/Release/CodexUsage.exe`입니다.
 
 실행 후 **Settings**에서 투명도(20~100%), 조회 주기(10~3600초), 남은 비율 Warning/Alert 기준(`0 ≤ Alert < Warning ≤ 100`), 자동 실행, 트레이 시작 여부를 설정합니다. 실행 파일 자동 검색이 실패하면 CLI 또는 GUI 경로를 지정할 수 있습니다. 설정은 현재 사용자 레지스트리의 `Citopia` 키에 저장됩니다. 자동 실행은 현재 사용자의 Windows `Run` 키에 실행 파일 경로를 등록합니다. 실행 파일을 이동했다면 새 위치에서 자동 실행 설정을 다시 저장하세요.
 
