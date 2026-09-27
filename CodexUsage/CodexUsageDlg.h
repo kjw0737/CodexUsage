@@ -31,10 +31,13 @@ private:
     void ApplySettings();
     void ShowWidget();
     void HideToTray();
+    void RestoreWindowPosition();
+    void SaveWindowPosition() const;
     afx_msg LRESULT OnTray(WPARAM, LPARAM);
     afx_msg LRESULT OnTaskbarCreated(WPARAM, LPARAM);
     afx_msg void OnSysCommand(UINT, LPARAM);
     afx_msg void OnWindowPosChanging(WINDOWPOS*);
+    afx_msg void OnDestroy();
     CRect Rect(int x, int y, int width, int height) const;
     afx_msg void OnPaint();
     afx_msg BOOL OnEraseBkgnd(CDC*);

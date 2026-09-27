@@ -31,3 +31,9 @@ Mac에서 저장소를 받은 뒤 다음 명령을 실행합니다.
 현재 소스는 GitHub Actions의 Mac 러너에서 Apple Silicon·Intel 범용 앱 빌드와 CSV 기능을 포함한 7개 Swift 테스트가 통과했습니다. [macOS 미리보기 ZIP](https://github.com/kjw0737/CodexUsage/releases/tag/v1.0.2026.0926-mac-preview)을 받을 수 있습니다. 이 기존 미리보기 ZIP에는 CSV 그래프 기능이 포함되지 않습니다. 실제 사용자 세션에서 화면, CLI 연결, 알림 권한, 로그인 항목 동작은 추가 검증이 필요합니다. 배포용으로 공증된 DMG는 아직 제공하지 않습니다.
 
 창의 버튼이 아닌 배경과 텍스트 영역을 드래그하면 창을 이동할 수 있습니다.
+
+2026-09-27 00:10: macOS 빌드에서 설치된 Xcode를 우선 사용하도록 수정했습니다. SwiftUI 매크로 누락 오류를 피하고, Apple Silicon·Intel 빌드 폴더를 분리해 실행 파일 덮어쓰기를 방지합니다. 사용자 지정 Xcode는 DEVELOPER_DIR로 선택할 수 있습니다.
+
+2026-09-27 00:15: macOS 앱 아이콘(ICNS) 생성 원본을 CodexUsage/res/CodexUsage.png로 변경했습니다.
+
+2026-09-27 00:43: macOS 위젯의 버튼 외 영역에서 네이티브 창 드래그를 시작하도록 수정했습니다. 버튼의 실제 배치 영역은 클릭이 통과하도록 제외합니다.

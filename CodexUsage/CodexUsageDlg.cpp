@@ -3,6 +3,7 @@
 #include "CodexUsageDlg.h"
 #include "CodexLauncher.h"
 #include "UsageHistory.h"
+#include "AboutDialog.h"
 #include <ctime>
 
 namespace { constexpr UINT TrayMessage = WM_APP + 10; UINT TaskbarCreated = RegisterWindowMessage(L"TaskbarCreated"); }
@@ -38,6 +39,7 @@ BEGIN_MESSAGE_MAP(CCodexUsageDlg, CDialogEx)
     ON_WM_DRAWITEM()
     ON_WM_SYSCOMMAND()
     ON_WM_WINDOWPOSCHANGING()
+    ON_WM_DESTROY()
     ON_MESSAGE(TrayMessage, &CCodexUsageDlg::OnTray)
     ON_REGISTERED_MESSAGE(TaskbarCreated, &CCodexUsageDlg::OnTaskbarCreated)
     ON_CONTROL_RANGE(BN_CLICKED, IDC_CMD_CODEX, IDC_HISTORY, &CCodexUsageDlg::OnAction)
@@ -53,6 +55,7 @@ BOOL CCodexUsageDlg::OnInitDialog()
     CDialogEx::OnInitDialog();
     ModifyStyle(WS_CAPTION | WS_THICKFRAME, 0, SWP_FRAMECHANGED);
     SetWindowPos(nullptr, 0, 0, 360, 280, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    RestoreWindowPosition();
     SetWindowText(L"Codex Usage");
     SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), TRUE);
     SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), FALSE);
@@ -233,7 +236,45 @@ void CCodexUsageDlg::OnAction(UINT id)
         break;
     }
 }
-void CCodexUsageDlg::OnCancel() { KillTimer(1); tray_.Remove(); client_.Stop(); CDialogEx::OnCancel(); }
+void CCodexUsageDlg::OnCancel()
+{
+    KillTimer(1); tray_.Remove(); client_.Stop(); CDialogEx::OnCancel();
+}
+void CCodexUsageDlg::RestoreWindowPosition()
+{
+    auto app = AfxGetApp();
+    if (!app->GetProfileInt(L"Widget", L"WindowPositionSaved", 0)) return;
+
+    CRect window; GetWindowRect(&window);
+    const int savedX = static_cast<int>(app->GetProfileInt(L"Widget", L"WindowX", window.left));
+    const int savedY = static_cast<int>(app->GetProfileInt(L"Widget", L"WindowY", window.top));
+    CRect target(savedX, savedY, savedX + window.Width(), savedY + window.Height());
+    HMONITOR monitor = MonitorFromRect(&target, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO info{ sizeof(info) };
+    if (GetMonitorInfo(monitor, &info))
+    {
+        const LONG dx = (std::max<LONG>)(info.rcWork.left - target.left,
+            (std::min<LONG>)(0, info.rcWork.right - target.right));
+        const LONG dy = (std::max<LONG>)(info.rcWork.top - target.top,
+            (std::min<LONG>)(0, info.rcWork.bottom - target.bottom));
+        target.OffsetRect(dx, dy);
+    }
+    SetWindowPos(nullptr, target.left, target.top, 0, 0,
+        SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+void CCodexUsageDlg::OnDestroy()
+{
+    SaveWindowPosition();
+    CDialogEx::OnDestroy();
+}void CCodexUsageDlg::SaveWindowPosition() const
+{
+    if (!GetSafeHwnd()) return;
+    CRect window; GetWindowRect(&window);
+    auto app = AfxGetApp();
+    app->WriteProfileInt(L"Widget", L"WindowX", window.left);
+    app->WriteProfileInt(L"Widget", L"WindowY", window.top);
+    app->WriteProfileInt(L"Widget", L"WindowPositionSaved", 1);
+}
 void CCodexUsageDlg::HideToTray()
 {
     // Re-add before hiding, so an unavailable notification area cannot strand the window.
@@ -273,12 +314,14 @@ LRESULT CCodexUsageDlg::OnTray(WPARAM, LPARAM event)
         menu.AppendMenu(MF_STRING, 1, L"창 표시");
         menu.AppendMenu(MF_STRING, 2, L"새로 고침");
         menu.AppendMenu(MF_STRING, 4, L"알림 테스트");
+        menu.AppendMenu(MF_STRING, 5, L"About");
         menu.AppendMenu(MF_STRING, 3, L"종료");
         POINT point; GetCursorPos(&point); SetForegroundWindow();
         UINT action = menu.TrackPopupMenu(TPM_RETURNCMD | TPM_RIGHTBUTTON, point.x, point.y, this);
         PostMessage(WM_NULL);
         if (action == 1) ShowWidget(); else if (action == 2) Refresh(); else if (action == 3) OnCancel();
         else if (action == 4) tray_.Notify(L"알림 센터 보관 테스트입니다. 배너가 사라진 뒤 Win+N으로 확인하세요.", false);
+        else if (action == 5) { AboutDialog about(this); about.DoModal(); }
     }
     return 0;
 }

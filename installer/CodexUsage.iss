@@ -1,6 +1,14 @@
 ﻿#ifndef AppVersion
-  #define AppVersion "1.0.2026.0926"
+  #define AppVersion "1.0.2026.0927"
 #endif
+
+#define AppName "CodexUsage"
+#define AppPublisher "Citopia"
+#define RuntimeKey "Software\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+#define RunKey "Software\Microsoft\Windows\CurrentVersion\Run"
+#define RedistPath "redist\VC_redist.x64.exe"
+#define AppExePath "..\x64\Release\CodexUsage.exe"
+
 #ifndef RedistPath
   #error RedistPath must point to the official vc_redist.x64.exe. Run tools\BuildInstaller.ps1.
 #endif
@@ -9,10 +17,8 @@
   #error AppExePath must point to a Release x64 CodexUsage.exe. Run tools\BuildInstaller.ps1.
 #endif
 
-#define AppName "CodexUsage"
-#define AppPublisher "Citopia"
-#define RuntimeKey "Software\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
-#define RunKey "Software\Microsoft\Windows\CurrentVersion\Run"
+
+
 
 [Setup]
 AppId={{6D17CB86-C7D7-4E44-AF3D-7B5DD620841E}

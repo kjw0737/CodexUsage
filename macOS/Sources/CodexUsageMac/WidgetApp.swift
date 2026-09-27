@@ -25,6 +25,7 @@ struct HoverButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
+        .anchorPreference(key: WidgetButtonBoundsKey.self, value: .bounds) { [$0] }
     }
 }
 
@@ -46,6 +47,7 @@ struct HoverIconButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovered = $0 }
+        .anchorPreference(key: WidgetButtonBoundsKey.self, value: .bounds) { [$0] }
         .help("Saved usage graph")
     }
 }
@@ -157,6 +159,11 @@ struct WidgetView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.primary.opacity(0.13)))
+        .overlayPreferenceValue(WidgetButtonBoundsKey.self) { anchors in
+            GeometryReader { geometry in
+                WindowDragSurface(excludedRects: anchors.map { geometry[$0] })
+            }
+        }
     }
 }
 
@@ -215,10 +222,6 @@ struct SettingsView: View {
     }
 }
 
-final class DraggableHostingView<Content: View>: NSHostingView<Content> {
-    override var mouseDownCanMoveWindow: Bool { true }
-}
-
 final class WidgetWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
@@ -245,11 +248,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         window = WidgetWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 280),
                               styleMask: [.borderless], backing: .buffered, defer: false)
-        window.contentView = DraggableHostingView(rootView: view)
+        window.contentView = NSHostingView(rootView: view)
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.center()
         updateWindow()

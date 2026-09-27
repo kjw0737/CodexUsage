@@ -5,17 +5,28 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 app="$script_dir/dist/CodexUsageMac.app"
 contents="$app/Contents"
-source_icon="$repo_root/CodexUsage/res/CodexUsage-source.png"
+source_icon="$repo_root/CodexUsage/res/CodexUsage.png"
+
+# Prefer the full Xcode toolchain, which includes SwiftUI macro plugins.
+if [[ -z "${DEVELOPER_DIR:-}" && -d /Applications/Xcode.app/Contents/Developer ]]; then
+    export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
 
 swift test --package-path "$script_dir"
-swift build --package-path "$script_dir" -c release --arch arm64
-arm_bin_dir="$(swift build --package-path "$script_dir" -c release --arch arm64 --show-bin-path)"
-swift build --package-path "$script_dir" -c release --arch x86_64
-intel_bin_dir="$(swift build --package-path "$script_dir" -c release --arch x86_64 --show-bin-path)"
+swift build --package-path "$script_dir" --scratch-path "$script_dir/.build/arm64" -c release --arch arm64
+arm_bin_dir="$(swift build --package-path "$script_dir" --scratch-path "$script_dir/.build/arm64" -c release --arch arm64 --show-bin-path)"
+swift build --package-path "$script_dir" --scratch-path "$script_dir/.build/x86_64" -c release --arch x86_64
+intel_bin_dir="$(swift build --package-path "$script_dir" --scratch-path "$script_dir/.build/x86_64" -c release --arch x86_64 --show-bin-path)"
 
 mkdir -p "$contents/MacOS" "$contents/Resources"
 lipo -create "$arm_bin_dir/CodexUsageMac" "$intel_bin_dir/CodexUsageMac" -output "$contents/MacOS/CodexUsageMac"
-lipo "$contents/MacOS/CodexUsageMac" -verify_arch arm64 x86_64
+architectures="$(lipo -archs "$contents/MacOS/CodexUsageMac")"
+for architecture in arm64 x86_64; do
+    if [[ " $architectures " != *" $architecture "* ]]; then
+        echo "Missing architecture: $architecture" >&2
+        exit 1
+    fi
+done
 cp "$repo_root/CodexUsage/res/CodexUsage.png" "$contents/Resources/CodexUsage.png"
 
 cat > "$contents/Info.plist" <<'PLIST'
@@ -27,7 +38,7 @@ cat > "$contents/Info.plist" <<'PLIST'
     <key>CFBundleDisplayName</key><string>CodexUsage</string>
     <key>CFBundleExecutable</key><string>CodexUsageMac</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.0.20260926</string>
+    <key>CFBundleShortVersionString</key><string>1.0.20260927</string>
     <key>CFBundleVersion</key><string>1</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSUIElement</key><true/>
