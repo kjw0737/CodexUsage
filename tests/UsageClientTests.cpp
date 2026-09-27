@@ -39,6 +39,15 @@ int wmain(int argc, wchar_t** argv)
         quota.primary.remaining = 75; quota.primary.resetAt = 1000;
         bool danger = false;
         Check(alerts.Update(quota, 50, 20, danger).IsEmpty(), "first sample establishes baseline");
+        UsageAlerts firstSampleAlerts;
+        UsageSnapshot firstSample; firstSample.connected = true; firstSample.primary.available = true;
+        firstSample.primary.remaining = 40;
+        Check(firstSampleAlerts.Update(firstSample, 50, 20, danger).Find(L"Warning") >= 0 && danger, "warning on first sample already below threshold");
+        Check(firstSampleAlerts.Update(firstSample, 50, 20, danger).IsEmpty(), "no duplicate initial warning");
+        firstSample.primary.remaining = 10;
+        Check(firstSampleAlerts.Update(firstSample, 50, 20, danger).Find(L"Alert") >= 0 && danger, "alert after initial warning");
+        UsageAlerts initialAlert;
+        Check(initialAlert.Update(firstSample, 50, 20, danger).Find(L"Alert") >= 0 && danger, "alert on first sample already below threshold");
         quota.primary.remaining = 50;
         Check(!alerts.Update(quota, 50, 20, danger).IsEmpty() && danger, "warning at exact threshold");
         Check(alerts.Update(quota, 50, 20, danger).IsEmpty(), "no duplicate warning");
@@ -56,7 +65,7 @@ int wmain(int argc, wchar_t** argv)
         quota.secondary.remaining = 10;
         Check(!alerts.Update(quota, 50, 20, danger).IsEmpty() && danger, "weekly quota tracked independently");
         alerts.Reset();
-        Check(alerts.Update(quota, 60, 30, danger).IsEmpty(), "settings change resets baseline");
+        Check(alerts.Update(quota, 60, 30, danger).Find(L"Alert") >= 0 && danger, "settings change reevaluates current alert level");
         Check(UsageAlerts::Level(51,50,20) == 0 && UsageAlerts::Level(50,50,20) == 1 && UsageAlerts::Level(20,50,20) == 2, "graph and alerts share thresholds");
         CString testKey; testKey.Format(L"Software\\Citopia\\CodexUsageTests\\Startup-%lu", GetCurrentProcessId());
         StartupRegistration startup(testKey);

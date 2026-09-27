@@ -75,8 +75,11 @@ BOOL CCodexUsageDlg::OnInitDialog()
     tooltip_.AddTool(&buttons_[3], L"트레이로 숨기기"); tooltip_.AddTool(&buttons_[4], L"종료");
     tooltip_.AddTool(&buttons_[6], L"저장된 사용량 그래프");
     const bool trayReady = tray_.Add(m_hWnd, AfxGetApp()->LoadIcon(IDR_MAINFRAME), TrayMessage);
-    startupHidden_ = settings_.startInTray && trayReady;
-    ApplySettings(); SetTimer(1, 250, nullptr); Refresh(); return TRUE;
+    startupHidden_ = settings_.startInTray && trayReady && CString(AfxGetApp()->m_lpCmdLine).Find(L"--show-from-notification") < 0;
+    ApplySettings(); SetTimer(1, 250, nullptr);
+    if (CString(AfxGetApp()->m_lpCmdLine).Find(L"--test-notification") >= 0)
+        tray_.Notify(L"알림 센터 보관 테스트입니다. 배너가 사라진 뒤 Win+N으로 확인하세요.", false);
+    Refresh(); return TRUE;
 }
 BOOL CCodexUsageDlg::PreTranslateMessage(MSG* msg)
 {
@@ -103,12 +106,12 @@ void CCodexUsageDlg::OnTimer(UINT_PTR id)
         UsageSnapshot value;
         if (client_.Take(value))
         {
+            CString notice;
+            bool warning = false;
             stale_ = !value.connected; error_ = value.error;
             if (value.connected)
             {
-                bool warning = false;
-                CString notice = alerts_.Update(value, settings_.warning, settings_.alert, warning);
-                tray_.Notify(notice, warning);
+                notice = alerts_.Update(value, settings_.warning, settings_.alert, warning);
                 snapshot_ = value;
                 if (settings_.saveCsv && value.primary.available && value.secondary.available &&
                     !UsageHistory::Append(value) && !csvErrorShown_)
@@ -118,6 +121,7 @@ void CCodexUsageDlg::OnTimer(UINT_PTR id)
                 }
             }
             tray_.Update(snapshot_, stale_);
+            tray_.Notify(notice, warning);
             tooltip_.UpdateTipText(snapshot_.expirations.IsEmpty() ? L"상세 정보 없음" : snapshot_.expirations, this, 1);
             tooltip_.UpdateTipText(error_.IsEmpty() ? L"Codex CLI 로그인 계정 · 남은 사용량 표시" : error_, this, 2);
             buttons_[5].EnableWindow(TRUE);
@@ -268,11 +272,13 @@ LRESULT CCodexUsageDlg::OnTray(WPARAM, LPARAM event)
         CMenu menu; menu.CreatePopupMenu();
         menu.AppendMenu(MF_STRING, 1, L"창 표시");
         menu.AppendMenu(MF_STRING, 2, L"새로 고침");
+        menu.AppendMenu(MF_STRING, 4, L"알림 테스트");
         menu.AppendMenu(MF_STRING, 3, L"종료");
         POINT point; GetCursorPos(&point); SetForegroundWindow();
         UINT action = menu.TrackPopupMenu(TPM_RETURNCMD | TPM_RIGHTBUTTON, point.x, point.y, this);
         PostMessage(WM_NULL);
         if (action == 1) ShowWidget(); else if (action == 2) Refresh(); else if (action == 3) OnCancel();
+        else if (action == 4) tray_.Notify(L"알림 센터 보관 테스트입니다. 배너가 사라진 뒤 Win+N으로 확인하세요.", false);
     }
     return 0;
 }

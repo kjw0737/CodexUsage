@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "WidgetTray.h"
 #include "Resource.h"
+#include "DesktopNotifications.h"
 bool WidgetTray::Add(HWND owner, HICON icon, UINT message)
 {
     data_ = {};
@@ -35,10 +36,14 @@ void WidgetTray::Update(const UsageSnapshot& snapshot, bool stale)
 }
 void WidgetTray::Notify(const CString& message, bool warning)
 {
-    if (!added_ || message.IsEmpty()) return;
-    data_.uFlags = NIF_INFO;
-    wcscpy_s(data_.szInfoTitle, L"Codex Usage");
-    wcsncpy_s(data_.szInfo, message, _TRUNCATE);
-    data_.dwInfoFlags = warning ? NIIF_WARNING : NIIF_INFO;
-    Shell_NotifyIcon(NIM_MODIFY, &data_);
+    if (message.IsEmpty()) return;
+    if (!DesktopNotifications::Show(message, warning))
+    {
+        static bool errorShown = false;
+        if (!errorShown)
+        {
+            errorShown = true;
+            AfxMessageBox(L"Windows 알림 센터에 알림을 보내지 못했습니다. 시작 메뉴 및 사용자 레지스트리의 쓰기 권한을 확인하세요.");
+        }
+    }
 }

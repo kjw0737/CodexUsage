@@ -183,7 +183,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="CodexUsage.h" /><ClInclude Include="UsageClient.h" /><ClInclude Include="UsageAlerts.h" /><ClInclude Include="WidgetTray.h" /><ClInclude Include="HoverButton.h" /><ClInclude Include="StartupRegistration.h" /><ClInclude Include="WidgetSettings.h" /><ClInclude Include="CodexLauncher.h" /><ClInclude Include="UsageHistory.h" />
+    <ClInclude Include="CodexUsage.h" /><ClInclude Include="UsageClient.h" /><ClInclude Include="UsageAlerts.h" /><ClInclude Include="WidgetTray.h" /><ClInclude Include="DesktopNotifications.h" /><ClInclude Include="HoverButton.h" /><ClInclude Include="StartupRegistration.h" /><ClInclude Include="WidgetSettings.h" /><ClInclude Include="CodexLauncher.h" /><ClInclude Include="UsageHistory.h" />
     <ClInclude Include="CodexUsageDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />

@@ -52,8 +52,8 @@ BEGIN
     CONTROL "Close", IDOK, "Button", BS_OWNERDRAW | WS_TABSTOP, 385, 8, 45, 18
 END
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,2026,926
- PRODUCTVERSION 1,0,2026,926
+ FILEVERSION 1,0,2026,927
+ PRODUCTVERSION 1,0,2026,927
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,12 +70,12 @@ BEGIN
   BEGIN
    VALUE "CompanyName", "Citopia"
    VALUE "FileDescription", "Codex Usage Widget"
-   VALUE "FileVersion", "1.0.2026.0926"
+   VALUE "FileVersion", "1.0.2026.0927"
    VALUE "InternalName", "CodexUsage.exe"
    VALUE "LegalCopyright", "Copyright (C) 2026 Citopia"
    VALUE "OriginalFilename", "CodexUsage.exe"
    VALUE "ProductName", "CodexUsage"
-   VALUE "ProductVersion", "1.0.2026.0926"
+   VALUE "ProductVersion", "1.0.2026.0927"
   END
  END
  BLOCK "VarFileInfo"

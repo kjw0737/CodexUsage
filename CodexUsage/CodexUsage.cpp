@@ -6,6 +6,7 @@
 #include "framework.h"
 #include "CodexUsage.h"
 #include "CodexUsageDlg.h"
+#include "DesktopNotifications.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -40,6 +41,19 @@ CCodexUsageApp theApp;
 
 BOOL CCodexUsageApp::InitInstance()
 {
+    DesktopNotifications::Runtime notificationRuntime;
+    if (!notificationRuntime.Ready()) return FALSE;
+    if (CString(m_lpCmdLine).Find(L"--show-from-notification") >= 0)
+    {
+        if (HWND existing = ::FindWindowW(L"#32770", L"Codex Usage"))
+        {
+            DWORD process = 0;
+            GetWindowThreadProcessId(existing, &process);
+            AllowSetForegroundWindow(process);
+            ::PostMessage(existing, WM_APP + 10, 0, WM_LBUTTONUP);
+            return FALSE;
+        }
+    }
 	// Windows XP에서는 InitCommonControlsEx()를 필요로 합니다.
 	// 사용하도록 지정하는 경우, Windows XP 상에서 반드시 InitCommonControlsEx()가 필요합니다.
 	// InitCommonControlsEx()를 사용하지 않으면 창을 만들 수 없습니다.
