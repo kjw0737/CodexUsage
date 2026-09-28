@@ -43,22 +43,37 @@ namespace
         return mktime(&local);
     }
 
-    bool UpgradeHeader(const std::filesystem::path& file)
+    bool NormalizeHeader(const std::filesystem::path& file)
     {
         std::ifstream input(file, std::ios::binary);
         if (!input) return true;
         const std::string content((std::istreambuf_iterator<char>(input)),
                                   std::istreambuf_iterator<char>());
         input.close();
-        const std::string oldHeader = "date_time,5_hour_remaining,weekly_remaining\r\n";
-        const std::string newHeader = "date_time,5_hour_remaining,weekly_remaining,5_hour_reset_at\r\n";
-        if (content.rfind(newHeader, 0) == 0) return true;
-        if (content.rfind(oldHeader, 0) != 0) return false;
+        const std::string header = "date_time,5_hour_remaining,weekly_remaining\r\n";
+        const std::string legacyHeader =
+            "date_time,5_hour_remaining,weekly_remaining,5_hour_reset_at\r\n";
+        if (content.rfind(header, 0) == 0) return true;
+        if (content.rfind(legacyHeader, 0) != 0) return false;
+
         const auto temporary = file.wstring() + L".tmp";
         {
             std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
             if (!output) return false;
-            output << newHeader << content.substr(oldHeader.size());
+            output << header;
+            size_t offset = legacyHeader.size();
+            while (offset < content.size())
+            {
+                const size_t newline = content.find('\n', offset);
+                const size_t length = (newline == std::string::npos ? content.size() : newline) - offset;
+                std::string row = content.substr(offset, length);
+                if (!row.empty() && row.back() == '\r') row.pop_back();
+                const size_t lastComma = row.rfind(',');
+                if (lastComma != std::string::npos) row.erase(lastComma);
+                if (!row.empty()) output << row << "\r\n";
+                if (newline == std::string::npos) break;
+                offset = newline + 1;
+            }
             if (!output) return false;
         }
         return MoveFileExW(temporary.c_str(), file.c_str(),
@@ -72,7 +87,7 @@ bool UsageHistory::Append(const UsageSnapshot& snapshot)
         return false;
     const time_t stamp = snapshot.updated ? snapshot.updated : time(nullptr);
     const auto file = ExecutableDirectory() / static_cast<LPCWSTR>(DayFile(stamp));
-    if (!UpgradeHeader(file)) return false;
+    if (!NormalizeHeader(file)) return false;
     HANDLE handle = CreateFileW(file.c_str(), FILE_APPEND_DATA | FILE_READ_ATTRIBUTES,
                                 FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (handle == INVALID_HANDLE_VALUE) return false;
@@ -80,14 +95,13 @@ bool UsageHistory::Append(const UsageSnapshot& snapshot)
     const bool empty = GetFileSizeEx(handle, &size) && size.QuadPart == 0;
     tm local{};
     localtime_s(&local, &stamp);
-    char row[192]{};
-    sprintf_s(row, "%04d-%02d-%02d %02d:%02d:%02d,%.2f,%.2f,%lld\r\n",
+    char row[160]{};
+    sprintf_s(row, "%04d-%02d-%02d %02d:%02d:%02d,%.2f,%.2f\r\n",
               local.tm_year + 1900, local.tm_mon + 1, local.tm_mday,
               local.tm_hour, local.tm_min, local.tm_sec,
-              snapshot.primary.remaining, snapshot.secondary.remaining,
-              snapshot.primary.resetAt);
+              snapshot.primary.remaining, snapshot.secondary.remaining);
     DWORD written = 0;
-    const char header[] = "date_time,5_hour_remaining,weekly_remaining,5_hour_reset_at\r\n";
+    const char header[] = "date_time,5_hour_remaining,weekly_remaining\r\n";
     bool ok = true;
     if (empty) ok = WriteFile(handle, header, sizeof(header) - 1, &written, nullptr)
                     && written == sizeof(header) - 1;
@@ -112,11 +126,9 @@ std::vector<HistoryPoint> UsageHistory::Read()
         {
             int y=0, month=0, day=0, h=0, minute=0, second=0;
             double five=0, weekly=0;
-            long long fiveHourReset = 0;
-            const int fields = sscanf_s(line.c_str(), "%d-%d-%d %d:%d:%d,%lf,%lf,%lld",
-                         &y, &month, &day, &h, &minute, &second, &five, &weekly,
-                         &fiveHourReset);
-            if (fields != 8 && fields != 9)
+            const int fields = sscanf_s(line.c_str(), "%d-%d-%d %d:%d:%d,%lf,%lf",
+                         &y, &month, &day, &h, &minute, &second, &five, &weekly);
+            if (fields != 8)
                 continue;
             if (y < 2000 || month < 1 || month > 12 || day < 1 || day > 31 ||
                 h > 23 || minute > 59 || second > 59 ||
@@ -124,8 +136,7 @@ std::vector<HistoryPoint> UsageHistory::Read()
                 five < 0 || five > 100 || weekly < 0 || weekly > 100)
                 continue;
             const time_t when = ParseTime(y, month, day, h, minute, second);
-            if (when != -1) points.push_back({when, five, weekly,
-                fields == 9 && fiveHourReset > 0 ? static_cast<time_t>(fiveHourReset) : 0});
+            if (when != -1) points.push_back({when, five, weekly});
         }
     } while (FindNextFileW(search, &find));
     FindClose(search);
@@ -340,8 +351,6 @@ void HistoryDialog::OnPaint()
     for (size_t i = 0; i < points_.size(); ++i)
     {
         const auto& point = points_[i];
-        if (point.fiveHourReset >= start && point.fiveHourReset <= end)
-            savedResets.insert(point.fiveHourReset);
         if (i > 0 && points_[i - 1].fiveHour < 100.0 && point.fiveHour >= 100.0 &&
             point.when >= start && point.when <= end)
             savedResets.insert(point.when);

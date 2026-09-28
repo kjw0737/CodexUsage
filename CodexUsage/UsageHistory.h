@@ -9,7 +9,6 @@ struct HistoryPoint
     time_t when = 0;
     double fiveHour = 0;
     double weekly = 0;
-    time_t fiveHourReset = 0;
 };
 
 class UsageHistory

@@ -159,8 +159,7 @@ CString TokenStatistics::BuildReport(const std::vector<ModelTokenStatistics>& st
         double fiveConsumed = 0, weeklyConsumed = 0;
         for (size_t i = 1; i < history.size(); ++i)
         {
-            if (history[i].fiveHourReset == history[i - 1].fiveHourReset)
-                fiveConsumed += (std::max)(0.0, history[i - 1].fiveHour - history[i].fiveHour);
+            fiveConsumed += (std::max)(0.0, history[i - 1].fiveHour - history[i].fiveHour);
             weeklyConsumed += (std::max)(0.0, history[i - 1].weekly - history[i].weekly);
         }
         CString csv;
