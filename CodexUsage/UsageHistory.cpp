@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Resource.h"
 #include "UsageHistory.h"
+#include <set>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -40,6 +41,28 @@ namespace
         local.tm_isdst = -1;
         return mktime(&local);
     }
+
+    bool UpgradeHeader(const std::filesystem::path& file)
+    {
+        std::ifstream input(file, std::ios::binary);
+        if (!input) return true;
+        const std::string content((std::istreambuf_iterator<char>(input)),
+                                  std::istreambuf_iterator<char>());
+        input.close();
+        const std::string oldHeader = "date_time,5_hour_remaining,weekly_remaining\r\n";
+        const std::string newHeader = "date_time,5_hour_remaining,weekly_remaining,5_hour_reset_at\r\n";
+        if (content.rfind(newHeader, 0) == 0) return true;
+        if (content.rfind(oldHeader, 0) != 0) return false;
+        const auto temporary = file.wstring() + L".tmp";
+        {
+            std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+            if (!output) return false;
+            output << newHeader << content.substr(oldHeader.size());
+            if (!output) return false;
+        }
+        return MoveFileExW(temporary.c_str(), file.c_str(),
+                           MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+    }
 }
 
 bool UsageHistory::Append(const UsageSnapshot& snapshot)
@@ -48,6 +71,7 @@ bool UsageHistory::Append(const UsageSnapshot& snapshot)
         return false;
     const time_t stamp = snapshot.updated ? snapshot.updated : time(nullptr);
     const auto file = ExecutableDirectory() / static_cast<LPCWSTR>(DayFile(stamp));
+    if (!UpgradeHeader(file)) return false;
     HANDLE handle = CreateFileW(file.c_str(), FILE_APPEND_DATA | FILE_READ_ATTRIBUTES,
                                 FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (handle == INVALID_HANDLE_VALUE) return false;
@@ -55,13 +79,14 @@ bool UsageHistory::Append(const UsageSnapshot& snapshot)
     const bool empty = GetFileSizeEx(handle, &size) && size.QuadPart == 0;
     tm local{};
     localtime_s(&local, &stamp);
-    char row[160]{};
-    sprintf_s(row, "%04d-%02d-%02d %02d:%02d:%02d,%.2f,%.2f\r\n",
+    char row[192]{};
+    sprintf_s(row, "%04d-%02d-%02d %02d:%02d:%02d,%.2f,%.2f,%lld\r\n",
               local.tm_year + 1900, local.tm_mon + 1, local.tm_mday,
               local.tm_hour, local.tm_min, local.tm_sec,
-              snapshot.primary.remaining, snapshot.secondary.remaining);
+              snapshot.primary.remaining, snapshot.secondary.remaining,
+              snapshot.primary.resetAt);
     DWORD written = 0;
-    const char header[] = "date_time,5_hour_remaining,weekly_remaining\r\n";
+    const char header[] = "date_time,5_hour_remaining,weekly_remaining,5_hour_reset_at\r\n";
     bool ok = true;
     if (empty) ok = WriteFile(handle, header, sizeof(header) - 1, &written, nullptr)
                     && written == sizeof(header) - 1;
@@ -86,8 +111,11 @@ std::vector<HistoryPoint> UsageHistory::Read()
         {
             int y=0, month=0, day=0, h=0, minute=0, second=0;
             double five=0, weekly=0;
-            if (sscanf_s(line.c_str(), "%d-%d-%d %d:%d:%d,%lf,%lf",
-                         &y, &month, &day, &h, &minute, &second, &five, &weekly) != 8)
+            long long fiveHourReset = 0;
+            const int fields = sscanf_s(line.c_str(), "%d-%d-%d %d:%d:%d,%lf,%lf,%lld",
+                         &y, &month, &day, &h, &minute, &second, &five, &weekly,
+                         &fiveHourReset);
+            if (fields != 8 && fields != 9)
                 continue;
             if (y < 2000 || month < 1 || month > 12 || day < 1 || day > 31 ||
                 h > 23 || minute > 59 || second > 59 ||
@@ -95,7 +123,8 @@ std::vector<HistoryPoint> UsageHistory::Read()
                 five < 0 || five > 100 || weekly < 0 || weekly > 100)
                 continue;
             const time_t when = ParseTime(y, month, day, h, minute, second);
-            if (when != -1) points.push_back({when, five, weekly});
+            if (when != -1) points.push_back({when, five, weekly,
+                fields == 9 && fiveHourReset > 0 ? static_cast<time_t>(fiveHourReset) : 0});
         }
     } while (FindNextFileW(search, &find));
     FindClose(search);
@@ -113,6 +142,10 @@ BEGIN_MESSAGE_MAP(HistoryDialog, CDialogEx)
     ON_WM_CTLCOLOR()
     ON_WM_DRAWITEM()
     ON_WM_SETTINGCHANGE()
+    ON_WM_SIZE()
+    ON_WM_ENTERSIZEMOVE()
+    ON_WM_EXITSIZEMOVE()
+    ON_WM_GETMINMAXINFO()
     ON_CBN_SELCHANGE(IDC_HISTORY_RANGE, &HistoryDialog::OnRangeChanged)
     ON_BN_CLICKED(IDC_HISTORY_FIRST, &HistoryDialog::OnFirst)
     ON_BN_CLICKED(IDC_HISTORY_PREV, &HistoryDialog::OnPrevious)
@@ -123,13 +156,20 @@ END_MESSAGE_MAP()
 BOOL HistoryDialog::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
+    ModifyStyle(WS_MINIMIZEBOX, WS_MAXIMIZEBOX | WS_THICKFRAME, SWP_FRAMECHANGED);
+    if (CMenu* systemMenu = GetSystemMenu(FALSE))
+        systemMenu->DeleteMenu(SC_MINIMIZE, MF_BYCOMMAND);
+    SetWindowPos(nullptr, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     theme_.Refresh(m_hWnd);
     const UINT ids[] = { IDC_HISTORY_FIRST, IDC_HISTORY_PREV, IDC_HISTORY_NEXT,
                          IDC_HISTORY_LAST, IDOK };
     for (int i = 0; i < 5; ++i) buttons_[i].SubclassDlgItem(ids[i], this);
     auto combo = static_cast<CComboBox*>(GetDlgItem(IDC_HISTORY_RANGE));
     combo->AddString(L"1 hour");
+    combo->AddString(L"5 hours");
     combo->AddString(L"1 day");
+    combo->AddString(L"7 days");
     combo->AddString(L"30 days");
     combo->SetCurSel(range_);
     SetWindowTheme(combo->m_hWnd, L"", L"");
@@ -149,6 +189,9 @@ BOOL HistoryDialog::OnInitDialog()
         origin_ = mktime(&local);
         page_ = LastPage();
     }
+    CRect window; GetWindowRect(&window);
+    minimumSize_ = window.Size();
+    LayoutControls();
     UpdateNavigation();
     return TRUE;
 }
@@ -166,9 +209,24 @@ CRect HistoryDialog::PlotRect() const
     return CRect(54, 57, client.right - 20, client.bottom - 40);
 }
 
+void HistoryDialog::LayoutControls()
+{
+    if (!GetSafeHwnd()) return;
+    if (CWnd* close = GetDlgItem(IDOK); close && close->GetSafeHwnd())
+    {
+        CRect rect; close->GetWindowRect(&rect); ScreenToClient(&rect);
+        CRect client; GetClientRect(&client);
+        close->SetWindowPos(nullptr, client.right - 18 - rect.Width(), rect.top,
+                            0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+    if (pointTooltip_.GetSafeHwnd())
+        pointTooltip_.SetToolRect(this, 1, PlotRect());
+}
+
 time_t HistoryDialog::Duration() const
 {
-    return range_ == 0 ? 3600 : range_ == 1 ? 86400 : 30 * 86400;
+    static const time_t durations[] = { 3600, 5 * 3600, 86400, 7 * 86400, 30 * 86400 };
+    return durations[(std::clamp)(range_, 0, 4)];
 }
 
 int HistoryDialog::LastPage() const
@@ -270,6 +328,40 @@ void HistoryDialog::OnPaint()
     CString endLabel = dateLabel(end);
     CSize endSize = dc.GetTextExtent(endLabel);
     dc.TextOutW(plot.right - endSize.cx, plot.bottom + 6, endLabel);
+    std::set<time_t> savedResets;
+    for (size_t i = 0; i < points_.size(); ++i)
+    {
+        const auto& point = points_[i];
+        if (point.fiveHourReset >= start && point.fiveHourReset <= end)
+            savedResets.insert(point.fiveHourReset);
+        if (i > 0 && points_[i - 1].fiveHour < 100.0 && point.fiveHour >= 100.0 &&
+            point.when >= start && point.when <= end)
+            savedResets.insert(point.when);
+    }
+    if (!savedResets.empty())
+    {
+        const COLORREF resetColor = theme_.dark ? RGB(171, 151, 82) : RGB(150, 116, 18);
+        CPen resetPen(PS_DOT, 1, resetColor);
+        auto oldResetPen = dc.SelectObject(&resetPen);
+        int lastLabelRight = plot.left - 80;
+        for (const time_t reset : savedResets)
+        {
+            const int x = plot.left + static_cast<int>(
+                (reset - start) * static_cast<long long>(plot.Width()) / Duration());
+            dc.MoveTo(x, plot.top); dc.LineTo(x, plot.bottom);
+            tm local{}; localtime_s(&local, &reset);
+            CString label; label.Format(L"5h reset %02d:%02d", local.tm_hour, local.tm_min);
+            const CSize size = dc.GetTextExtent(label);
+            const LONG labelX = (std::min<LONG>)(x + 3, plot.right - size.cx);
+            if (labelX > lastLabelRight + 8)
+            {
+                dc.SetTextColor(resetColor);
+                dc.TextOutW(labelX, plot.top + 4, label);
+                lastLabelRight = labelX + size.cx;
+            }
+        }
+        dc.SelectObject(oldResetPen);
+    }
     const COLORREF colors[] = { RGB(40, 135, 218), RGB(230, 139, 37) };
     const wchar_t* names[] = { L"5 hour", L"Weekly" };
     for (int series = 0; series < 2; ++series)
@@ -368,4 +460,32 @@ void HistoryDialog::OnSettingChange(UINT flags, LPCTSTR section)
     CDialogEx::OnSettingChange(flags, section);
     theme_.Refresh(m_hWnd);
     RedrawWindow(nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN);
+}
+void HistoryDialog::OnSize(UINT type, int width, int height)
+{
+    CDialogEx::OnSize(type, width, height);
+    if (type == SIZE_MINIMIZED) return;
+    LayoutControls();
+    if (!sizing_) Invalidate(FALSE);
+}
+void HistoryDialog::OnEnterSizeMove()
+{
+    sizing_ = true;
+    CDialogEx::OnEnterSizeMove();
+}
+void HistoryDialog::OnExitSizeMove()
+{
+    CDialogEx::OnExitSizeMove();
+    sizing_ = false;
+    LayoutControls();
+    RedrawWindow(nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN);
+}
+void HistoryDialog::OnGetMinMaxInfo(MINMAXINFO* info)
+{
+    CDialogEx::OnGetMinMaxInfo(info);
+    if (minimumSize_.cx > 0 && minimumSize_.cy > 0)
+    {
+        info->ptMinTrackSize.x = minimumSize_.cx;
+        info->ptMinTrackSize.y = minimumSize_.cy;
+    }
 }

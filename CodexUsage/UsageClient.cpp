@@ -210,7 +210,7 @@ UsageSnapshot UsageClient::Fetch(const CString& executable)
     ResumeThread(thread.value);
     CloseHandle(outputWrite.value); outputWrite.value = nullptr;
     CloseHandle(inputRead.value); inputRead.value = nullptr;
-    if (!Send(inputWrite.value, "{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"citopia_codex_usage\",\"version\":\"1.0.2026.0926\"},\"capabilities\":{\"experimentalApi\":true}}}\n"))
+    if (!Send(inputWrite.value, "{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"citopia_codex_usage\",\"version\":\"1.0.2026.0928\"},\"capabilities\":{\"experimentalApi\":true}}}\n"))
     { failed.error = L"Codex 초기화 요청 실패"; return failed; }
     std::string buffer;
     const ULONGLONG deadline = GetTickCount64() + 25000;

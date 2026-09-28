@@ -39,7 +39,7 @@ BEGIN
     CONTROL "Cancel", IDCANCEL, "Button", BS_OWNERDRAW | WS_TABSTOP, 168, 205, 54, 18
 END
 IDD_HISTORY DIALOGEX 0, 0, 440, 270
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MAXIMIZEBOX
 CAPTION "Codex Usage History"
 FONT 9, "Segoe UI"
 BEGIN
@@ -64,8 +64,8 @@ BEGIN
     CONTROL "Close", IDOK, "Button", BS_OWNERDRAW | WS_TABSTOP, 158, 88, 50, 18
 END
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,2026,927
- PRODUCTVERSION 1,0,2026,927
+ FILEVERSION 1,0,2026,928
+ PRODUCTVERSION 1,0,2026,928
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -82,12 +82,12 @@ BEGIN
   BEGIN
    VALUE "CompanyName", "Citopia"
    VALUE "FileDescription", "Codex Usage Widget"
-   VALUE "FileVersion", "1.0.2026.0927"
+   VALUE "FileVersion", "1.0.2026.0928"
    VALUE "InternalName", "CodexUsage.exe"
    VALUE "LegalCopyright", "Copyright (C) 2026 Citopia"
    VALUE "OriginalFilename", "CodexUsage.exe"
    VALUE "ProductName", "CodexUsage"
-   VALUE "ProductVersion", "1.0.2026.0927"
+   VALUE "ProductVersion", "1.0.2026.0928"
   END
  END
  BLOCK "VarFileInfo"

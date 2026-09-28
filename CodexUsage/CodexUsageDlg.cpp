@@ -72,9 +72,11 @@ BOOL CCodexUsageDlg::OnInitDialog()
             rectangles[i], this, IDC_CMD_CODEX + i);
         buttons_[i].SetFont(&font_);
     }
-    tooltip_.Create(this, TTS_ALWAYSTIP); tooltip_.SetMaxTipWidth(550);
+    tooltip_.Create(this, TTS_ALWAYSTIP); tooltip_.SetMaxTipWidth(650);
+    tooltip_.SetDelayTime(TTDT_INITIAL, 250);
+    tooltip_.SetDelayTime(TTDT_AUTOPOP, 15000);
     CRect info = Rect(18, 202, 230, 26); tooltip_.AddTool(this, L"리셋 크레딧 만료일", info, 1);
-    CRect status = Rect(18, 240, 324, 26); tooltip_.AddTool(this, L"Codex 연결 상태", status, 2);
+    CRect status = Rect(18, 238, 180, 26); tooltip_.AddTool(this, L"Codex 연결 상태", status, 2);
     tooltip_.AddTool(&buttons_[3], L"트레이로 숨기기"); tooltip_.AddTool(&buttons_[4], L"종료");
     tooltip_.AddTool(&buttons_[6], L"저장된 사용량 그래프");
     const bool trayReady = tray_.Add(m_hWnd, AfxGetApp()->LoadIcon(IDR_MAINFRAME), TrayMessage);
@@ -126,7 +128,16 @@ void CCodexUsageDlg::OnTimer(UINT_PTR id)
             tray_.Update(snapshot_, stale_);
             tray_.Notify(notice, warning);
             tooltip_.UpdateTipText(snapshot_.expirations.IsEmpty() ? L"상세 정보 없음" : snapshot_.expirations, this, 1);
-            tooltip_.UpdateTipText(error_.IsEmpty() ? L"Codex CLI 로그인 계정 · 남은 사용량 표시" : error_, this, 2);
+            CString statusTip;
+            if (client_.Busy()) statusTip = L"Codex: refreshing…";
+            else if (stale_)
+            {
+                statusTip = L"Codex: disconnected";
+                if (error_.IsEmpty()) statusTip += L"\n원인 정보가 없습니다.";
+                else { statusTip += L"\n"; statusTip += error_; }
+            }
+            else statusTip = L"Codex: connected\nCodex CLI 로그인 계정의 남은 사용량을 표시합니다.";
+            tooltip_.UpdateTipText(statusTip, this, 2);
             buttons_[5].EnableWindow(TRUE);
             nextRefresh_ = GetTickCount64() + static_cast<ULONGLONG>(settings_.interval) * 1000;
         }
@@ -180,9 +191,9 @@ void CCodexUsageDlg::OnPaint()
     if (client_.Busy()) next = L" (checking)";
     else next.Format(L" (%llus)", seconds);
     updated += next;
-    text(updated, Rect(164,241,178,20), theme_.muted, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+    text(updated, Rect(202,241,140,20), theme_.muted, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
     CString status = client_.Busy() ? L"Codex: refreshing…" : stale_ ? L"Codex: disconnected · " + error_ : L"Codex: connected";
-    text(status, Rect(18,241,140,20), stale_ ? RGB(215,120,60) : theme_.dark ? RGB(89,192,123) : RGB(24,120,63));
+    text(status, Rect(18,241,178,20), stale_ ? RGB(215,120,60) : theme_.dark ? RGB(89,192,123) : RGB(24,120,63));
     paint.BitBlt(0,0,bounds.Width(),bounds.Height(),&dc,0,0,SRCCOPY);
     dc.SelectObject(oldFont); dc.SelectObject(oldBitmap);
 }

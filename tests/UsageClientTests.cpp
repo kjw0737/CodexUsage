@@ -88,12 +88,14 @@ int wmain(int argc, wchar_t** argv)
         historySample.updated = time(nullptr);
         historySample.primary.available = true;
         historySample.primary.remaining = 37.25;
+        historySample.primary.resetAt = historySample.updated + 5 * 60 * 60;
         historySample.secondary.available = true;
         historySample.secondary.remaining = 88.5;
         Check(UsageHistory::Append(historySample), "append daily CSV sample");
         auto savedHistory = UsageHistory::Read();
         Check(!savedHistory.empty() &&
               savedHistory.back().fiveHour == 37.25 &&
+              savedHistory.back().fiveHourReset == historySample.primary.resetAt &&
               savedHistory.back().weekly == 88.5,
               "read daily CSV sample");
         historySample.secondary.available = false;
