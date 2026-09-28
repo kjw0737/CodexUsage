@@ -2,6 +2,7 @@
 #include "UsageClient.h"
 #include "UsageAlerts.h"
 #include "UsageHistory.h"
+#include "TokenStatistics.h"
 #include "StartupRegistration.h"
 #include <winrt/base.h>
 #include <iostream>
@@ -100,7 +101,16 @@ int wmain(int argc, wchar_t** argv)
               "read daily CSV sample");
         historySample.secondary.available = false;
         Check(!UsageHistory::Append(historySample), "incomplete usage is not recorded");
-        UsageClient client;
+        std::vector<TurnTokenUsage> tokenTurns = {
+            {L"gpt-test", 100, 60, 20, 5, 120},
+            {L"gpt-test", 300, 200, 40, 10, 340},
+            {L"gpt-other", 50, 0, 10, 0, 60}
+        };
+        const auto tokenStats = TokenStatistics::Summarize(tokenTurns);
+        Check(tokenStats.size() == 2 && tokenStats[0].model == L"gpt-test" &&
+              tokenStats[0].commands == 2 && tokenStats[0].total == 460 &&
+              tokenStats[0].minimum == 120 && tokenStats[0].median == 340 &&
+              tokenStats[0].maximum == 340, "summarize token usage per command and model");        UsageClient client;
         client.Start(L"Z:\\missing-codex.exe");
         auto deadline = GetTickCount64() + 3000;
         bool received = false;

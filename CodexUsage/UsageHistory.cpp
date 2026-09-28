@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Resource.h"
 #include "UsageHistory.h"
+#include "TokenStatistics.h"
 #include <set>
 #include <algorithm>
 #include <cmath>
@@ -151,6 +152,7 @@ BEGIN_MESSAGE_MAP(HistoryDialog, CDialogEx)
     ON_BN_CLICKED(IDC_HISTORY_PREV, &HistoryDialog::OnPrevious)
     ON_BN_CLICKED(IDC_HISTORY_NEXT, &HistoryDialog::OnNext)
     ON_BN_CLICKED(IDC_HISTORY_LAST, &HistoryDialog::OnLast)
+    ON_BN_CLICKED(IDC_TOKEN_STATS, &HistoryDialog::OnTokenStatistics)
 END_MESSAGE_MAP()
 
 BOOL HistoryDialog::OnInitDialog()
@@ -163,8 +165,8 @@ BOOL HistoryDialog::OnInitDialog()
                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     theme_.Refresh(m_hWnd);
     const UINT ids[] = { IDC_HISTORY_FIRST, IDC_HISTORY_PREV, IDC_HISTORY_NEXT,
-                         IDC_HISTORY_LAST, IDOK };
-    for (int i = 0; i < 5; ++i) buttons_[i].SubclassDlgItem(ids[i], this);
+                         IDC_HISTORY_LAST, IDC_TOKEN_STATS, IDOK };
+    for (int i = 0; i < 6; ++i) buttons_[i].SubclassDlgItem(ids[i], this);
     auto combo = static_cast<CComboBox*>(GetDlgItem(IDC_HISTORY_RANGE));
     combo->AddString(L"1 hour");
     combo->AddString(L"5 hours");
@@ -284,6 +286,12 @@ void HistoryDialog::OnNext()
     UpdateNavigation();
 }
 void HistoryDialog::OnLast() { page_ = LastPage(); UpdateNavigation(); }
+void HistoryDialog::OnTokenStatistics()
+{
+    const auto turns = TokenStatistics::Read(TokenStatistics::DefaultSessionsDirectory());
+    TokenStatisticsDialog dialog(TokenStatistics::BuildReport(TokenStatistics::Summarize(turns), points_), this);
+    dialog.DoModal();
+}
 
 void HistoryDialog::OnPaint()
 {

@@ -25,7 +25,7 @@ public:
     explicit HistoryDialog(CWnd* parent);
 private:
     WidgetTheme theme_;
-    HoverButton buttons_[5];
+    HoverButton buttons_[6];
     CToolTipCtrl pointTooltip_;
     int hoveredPoint_ = -1;
     std::vector<HistoryPoint> points_;
@@ -51,6 +51,7 @@ private:
     void OnPrevious();
     void OnNext();
     void OnLast();
+    void OnTokenStatistics();
     CRect PlotRect() const;
     time_t Duration() const;
     int LastPage() const;

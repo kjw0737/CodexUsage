@@ -213,6 +213,7 @@
     <ClInclude Include="WidgetSettings.h" />
     <ClInclude Include="CodexLauncher.h" />
     <ClInclude Include="UsageHistory.h" />
+    <ClInclude Include="TokenStatistics.h" />
     <ClInclude Include="CodexUsageDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
@@ -228,6 +229,7 @@
     <ClCompile Include="WidgetSettings.cpp" />
     <ClCompile Include="CodexLauncher.cpp" />
     <ClCompile Include="UsageHistory.cpp" />
+    <ClCompile Include="TokenStatistics.cpp" />
     <ClCompile Include="CodexUsageDlg.cpp" />
     <ClCompile Include="AboutDialog.cpp" />
     <ClCompile Include="pch.cpp">
