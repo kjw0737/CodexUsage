@@ -171,10 +171,17 @@ CString TokenStatistics::BuildReport(const std::vector<ModelTokenStatistics>& st
     return report;
 }
 
-TokenStatisticsDialog::TokenStatisticsDialog(const CString& report, CWnd* parent)
-    : CDialogEx(IDD_TOKEN_STATS, parent), report_(report) {}
+TokenStatisticsDialog::TokenStatisticsDialog(
+    const CString& report,
+    const std::vector<ModelTokenStatistics>& statistics,
+    CWnd* parent)
+    : CDialogEx(IDD_TOKEN_STATS, parent), report_(report), statistics_(statistics) {}
 
 BEGIN_MESSAGE_MAP(TokenStatisticsDialog, CDialogEx)
+    ON_WM_PAINT()
+    ON_WM_ERASEBKGND()
+    ON_WM_CTLCOLOR()
+    ON_WM_SETTINGCHANGE()
     ON_WM_SIZE()
     ON_WM_GETMINMAXINFO()
 END_MESSAGE_MAP()
@@ -182,21 +189,214 @@ END_MESSAGE_MAP()
 BOOL TokenStatisticsDialog::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
+    theme_.Refresh(m_hWnd);
     SetDlgItemText(IDC_TOKEN_STATS_TEXT, report_);
     CRect window; GetWindowRect(&window); minimumSize_ = window.Size();
+    CRect client; GetClientRect(&client);
+    LayoutControls(client.Width(), client.Height());
     return TRUE;
+}
+
+CRect TokenStatisticsDialog::ChartRect() const
+{
+    CRect client; GetClientRect(&client);
+    return CRect(8, 8, (std::max)(8, static_cast<int>(client.right) - 8),
+                 (std::max)(120, (std::min)(360, static_cast<int>(client.bottom) - 120)));
+}
+
+void TokenStatisticsDialog::DrawChart(CDC& dc, const CRect& chart)
+{
+    dc.FillSolidRect(chart, theme_.surface);
+    dc.Draw3dRect(chart, theme_.border, theme_.border);
+    dc.SetBkMode(TRANSPARENT);
+    dc.SetTextColor(theme_.foreground);
+
+    CRect title(chart.left + 10, chart.top + 5, chart.right - 10, chart.top + 23);
+    dc.DrawText(L"Average tokens per command", title, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    if (statistics_.empty())
+    {
+        CRect empty = chart; empty.top += 30;
+        dc.SetTextColor(theme_.muted);
+        dc.DrawText(L"No token data available", empty, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        return;
+    }
+
+    const COLORREF colors[] = { RGB(51, 132, 220), RGB(52, 181, 155),
+                                RGB(232, 145, 48), RGB(164, 102, 214) };
+    const COLORREF lowColors[] = { RGB(103, 112, 126), RGB(132, 141, 153),
+                                   RGB(117, 121, 128), RGB(149, 143, 157) };
+    const wchar_t* labels[] = { L"Uncached input", L"Cached input",
+                                L"Output", L"Reasoning" };
+    const int titleWidth = static_cast<int>(dc.GetTextExtent(L"Average tokens per command").cx);
+    int legendX = chart.left + (std::max)(250, titleWidth + 30);
+    for (int i = 0; i < 4; ++i)
+    {
+        CRect swatch(legendX, chart.top + 8, legendX + 10, chart.top + 18);
+        dc.FillSolidRect(swatch, colors[i]);
+        const int labelWidth = static_cast<int>(dc.GetTextExtent(labels[i]).cx) + 8;
+        CRect label(swatch.right + 4, chart.top + 4,
+                    swatch.right + 4 + labelWidth, chart.top + 22);
+        dc.SetTextColor(theme_.muted);
+        dc.DrawText(labels[i], label, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+        legendX = label.right + 14;
+    }
+
+    const int availableRows = (std::max)(1, (chart.Height() - 50) / 56);
+    const size_t count = (std::min<size_t>)(statistics_.size(),
+                                             static_cast<size_t>((std::min)(6, availableRows)));
+    uint64_t inputMaximum = 1, outputMaximum = 1, distributionMaximum = 1;
+    int valueWidth = 94;
+    for (size_t i = 0; i < count; ++i)
+    {
+        const auto& item = statistics_[i];
+        if (!item.commands) continue;
+        const uint64_t commands = static_cast<uint64_t>(item.commands);
+        const uint64_t input = item.input / commands;
+        const uint64_t output = item.output / commands;
+        inputMaximum = (std::max)(inputMaximum, input);
+        outputMaximum = (std::max)(outputMaximum, output);
+        distributionMaximum = (std::max)(distributionMaximum, item.maximum);
+        const int inputWidth = static_cast<int>(dc.GetTextExtent(Count(input)).cx);
+        const int outputWidth = static_cast<int>(dc.GetTextExtent(Count(output)).cx);
+        valueWidth = (std::max)(valueWidth, (std::max)(inputWidth, outputWidth) + 24);
+    }
+
+    const int rowsTop = chart.top + 32;
+    const int rowHeight = (std::max)(56, (chart.Height() - 38) / static_cast<int>(count));
+    const int labelWidth = (std::min)(155, (std::max)(112, chart.Width() / 6));
+    const int barLeft = chart.left + 10 + labelWidth;
+    const int barRight = (std::max)(barLeft + 40, static_cast<int>(chart.right) - valueWidth);
+    const int barWidth = barRight - barLeft;
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        const auto& item = statistics_[i];
+        if (!item.commands) continue;
+        const uint64_t commands = static_cast<uint64_t>(item.commands);
+        const uint64_t inputTotal = item.input / commands;
+        const uint64_t cached = (std::min)(item.cachedInput / commands, inputTotal);
+        const uint64_t uncached = inputTotal - cached;
+        const uint64_t outputTotal = item.output / commands;
+        const uint64_t reasoning = (std::min)(item.reasoningOutput / commands, outputTotal);
+        const uint64_t regularOutput = outputTotal - reasoning;
+        const double cacheRate = item.input ? 100.0 * static_cast<double>(item.cachedInput) / item.input : 0.0;
+        const bool lowSample = item.commands < 5;
+        const COLORREF* palette = lowSample ? lowColors : colors;
+        const int top = rowsTop + static_cast<int>(i) * rowHeight;
+
+        CString model;
+        model.Format(L"%s (n=%llu)%s", item.model.c_str(),
+                     static_cast<unsigned long long>(commands),
+                     lowSample ? L"  LOW SAMPLE" : L"");
+        CRect modelRect(chart.left + 10, top, barLeft - 6, top + 16);
+        dc.SetTextColor(lowSample ? theme_.muted : theme_.foreground);
+        dc.DrawText(model, modelRect, DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+
+        CString summary;
+        summary.Format(L"Cache %.1f%%  ·  Median %s", cacheRate, Count(item.median).GetString());
+        CRect summaryRect(barLeft, top, chart.right - 10, top + 16);
+        dc.SetTextColor(lowSample ? theme_.muted : theme_.foreground);
+        dc.DrawText(summary, summaryRect, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+
+        auto drawBar = [&](int y, const wchar_t* name, uint64_t first, uint64_t second,
+                           uint64_t total, uint64_t scale, int firstColor, int secondColor)
+        {
+            CRect labelRect(chart.left + 10, y - 3, barLeft - 7, y + 12);
+            dc.SetTextColor(theme_.muted);
+            dc.DrawText(name, labelRect, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+            CRect bar(barLeft, y, barRight, y + 10);
+            dc.FillSolidRect(bar, theme_.background);
+            dc.Draw3dRect(bar, lowSample ? theme_.muted : theme_.border,
+                               lowSample ? theme_.muted : theme_.border);
+            const int firstEnd = barLeft + static_cast<int>(first * barWidth / scale);
+            const int totalEnd = barLeft + static_cast<int>(total * barWidth / scale);
+            if (firstEnd > barLeft)
+                dc.FillSolidRect(CRect(barLeft + 1, y + 1, (std::min)(firstEnd, barRight), y + 10),
+                                 palette[firstColor]);
+            if (totalEnd > firstEnd)
+                dc.FillSolidRect(CRect((std::max)(firstEnd, barLeft + 1), y + 1,
+                                       (std::min)(totalEnd, barRight), y + 10),
+                                 palette[secondColor]);
+            CRect value(barRight + 8, y - 3, chart.right - 10, y + 12);
+            dc.SetTextColor(theme_.muted);
+            dc.DrawText(Count(total), value, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+        };
+
+        drawBar(top + 18, L"Input", uncached, cached, inputTotal, inputMaximum, 0, 1);
+        drawBar(top + 33, L"Output", regularOutput, reasoning, outputTotal, outputMaximum, 2, 3);
+
+        const int rangeY = top + 50;
+        CRect rangeLabel(chart.left + 10, rangeY - 7, barLeft - 7, rangeY + 7);
+        dc.SetTextColor(theme_.muted);
+        dc.DrawText(L"Total range", rangeLabel, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+        const int minimumX = barLeft + static_cast<int>(item.minimum * barWidth / distributionMaximum);
+        const int medianX = barLeft + static_cast<int>(item.median * barWidth / distributionMaximum);
+        const int maximumX = barLeft + static_cast<int>(item.maximum * barWidth / distributionMaximum);
+        CPen rangePen(PS_SOLID, 1, lowSample ? theme_.muted : theme_.foreground);
+        auto oldPen = dc.SelectObject(&rangePen);
+        dc.MoveTo(minimumX, rangeY); dc.LineTo(maximumX, rangeY);
+        dc.MoveTo(minimumX, rangeY - 3); dc.LineTo(minimumX, rangeY + 4);
+        dc.MoveTo(maximumX, rangeY - 3); dc.LineTo(maximumX, rangeY + 4);
+        dc.MoveTo(medianX, rangeY - 6); dc.LineTo(medianX, rangeY + 7);
+        dc.SelectObject(oldPen);
+    }
+
+    if (statistics_.size() > count)
+    {
+        CString more; more.Format(L"+%llu models in text details",
+            static_cast<unsigned long long>(statistics_.size() - count));
+        CRect note(chart.left + 10, chart.bottom - 18, chart.right - 10, chart.bottom - 3);
+        dc.SetTextColor(theme_.muted);
+        dc.DrawText(more, note, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+    }
+}
+
+void TokenStatisticsDialog::OnPaint()
+{
+    CPaintDC paint(this);
+    CRect client; GetClientRect(&client);
+    CDC buffer; buffer.CreateCompatibleDC(&paint);
+    CBitmap bitmap; bitmap.CreateCompatibleBitmap(&paint, client.Width(), client.Height());
+    auto oldBitmap = buffer.SelectObject(&bitmap);
+    buffer.FillSolidRect(client, theme_.background);
+    DrawChart(buffer, ChartRect());
+    paint.BitBlt(0, 0, client.Width(), client.Height(), &buffer, 0, 0, SRCCOPY);
+    buffer.SelectObject(oldBitmap);
+}
+
+BOOL TokenStatisticsDialog::OnEraseBkgnd(CDC*) { return TRUE; }
+
+HBRUSH TokenStatisticsDialog::OnCtlColor(CDC* dc, CWnd*, UINT type)
+{
+    return theme_.Color(dc, type);
+}
+
+void TokenStatisticsDialog::OnSettingChange(UINT flags, LPCTSTR section)
+{
+    CDialogEx::OnSettingChange(flags, section);
+    theme_.Refresh(m_hWnd);
+    RedrawWindow(nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN);
+}
+
+void TokenStatisticsDialog::LayoutControls(int width, int height)
+{
+    if (!GetSafeHwnd()) return;
+    const CRect chart = ChartRect();
+    const int textTop = chart.bottom + 8;
+    if (CWnd* text = GetDlgItem(IDC_TOKEN_STATS_TEXT))
+        text->SetWindowPos(nullptr, 8, textTop, (std::max)(0, width - 16),
+                           (std::max)(0, height - textTop - 30),
+                           SWP_NOZORDER | SWP_NOACTIVATE);
+    if (CWnd* close = GetDlgItem(IDOK))
+        close->SetWindowPos(nullptr, (std::max)(8, width - 58), (std::max)(8, height - 26),
+                            50, 18, SWP_NOZORDER | SWP_NOACTIVATE);
+    Invalidate(FALSE);
 }
 
 void TokenStatisticsDialog::OnSize(UINT type, int width, int height)
 {
     CDialogEx::OnSize(type, width, height);
-    if (type == SIZE_MINIMIZED || !GetSafeHwnd()) return;
-    if (CWnd* text = GetDlgItem(IDC_TOKEN_STATS_TEXT))
-        text->SetWindowPos(nullptr, 8, 8, (std::max)(0, width - 16), (std::max)(0, height - 38),
-                           SWP_NOZORDER | SWP_NOACTIVATE);
-    if (CWnd* close = GetDlgItem(IDOK))
-        close->SetWindowPos(nullptr, (std::max)(8, width - 58), (std::max)(8, height - 26),
-                            50, 18, SWP_NOZORDER | SWP_NOACTIVATE);
+    if (type != SIZE_MINIMIZED) LayoutControls(width, height);
 }
 
 void TokenStatisticsDialog::OnGetMinMaxInfo(MINMAXINFO* info)

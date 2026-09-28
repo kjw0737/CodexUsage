@@ -33,12 +33,23 @@ public:
 class TokenStatisticsDialog : public CDialogEx
 {
 public:
-    TokenStatisticsDialog(const CString& report, CWnd* parent);
+    TokenStatisticsDialog(const CString& report,
+                          const std::vector<ModelTokenStatistics>& statistics,
+                          CWnd* parent);
 private:
     CString report_;
+    std::vector<ModelTokenStatistics> statistics_;
+    WidgetTheme theme_;
     CSize minimumSize_;
     BOOL OnInitDialog() override;
+    afx_msg void OnPaint();
+    afx_msg BOOL OnEraseBkgnd(CDC*);
+    afx_msg HBRUSH OnCtlColor(CDC*, CWnd*, UINT);
+    afx_msg void OnSettingChange(UINT, LPCTSTR);
     afx_msg void OnSize(UINT, int, int);
     afx_msg void OnGetMinMaxInfo(MINMAXINFO*);
+    CRect ChartRect() const;
+    void LayoutControls(int, int);
+    void DrawChart(CDC&, const CRect&);
     DECLARE_MESSAGE_MAP()
 };

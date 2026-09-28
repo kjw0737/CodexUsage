@@ -299,8 +299,11 @@ void HistoryDialog::OnNext()
 void HistoryDialog::OnLast() { page_ = LastPage(); UpdateNavigation(); }
 void HistoryDialog::OnTokenStatistics()
 {
+    CWaitCursor wc;
     const auto turns = TokenStatistics::Read(TokenStatistics::DefaultSessionsDirectory());
-    TokenStatisticsDialog dialog(TokenStatistics::BuildReport(TokenStatistics::Summarize(turns), points_), this);
+    const auto statistics = TokenStatistics::Summarize(turns);
+    wc.Restore();
+    TokenStatisticsDialog dialog(TokenStatistics::BuildReport(statistics, points_), statistics, this);
     dialog.DoModal();
 }
 
