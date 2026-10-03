@@ -1,9 +1,10 @@
-import AppKit
+﻿import AppKit
 import SwiftUI
 
 struct HistoryView: View {
     let points: [HistoryPoint]
-    @State private var range: HistoryRange = .day
+    let onTokenStatistics: () -> Void
+    @State private var range: HistoryRange = .fiveHours
     @State private var page = 0
 
     private var timeline: HistoryTimeline { HistoryTimeline(points: points, range: range) }
@@ -32,6 +33,7 @@ struct HistoryView: View {
                     .disabled(line.next(after: selected) == nil)
                 Button(">|") { page = line.pages.last ?? 0 }
                     .disabled(line.next(after: selected) == nil)
+                Button("Token stats", action: onTokenStatistics)
                 Spacer(minLength: 0)
             }
             HStack(spacing: 18) {
@@ -43,6 +45,7 @@ struct HistoryView: View {
             }
             .font(.system(size: 11))
             HistoryPlot(points: line.visible(on: selected),
+                        resets: line.resetEvents.filter { $0 >= interval.start && $0 <= interval.end },
                         start: interval.start, duration: range.seconds)
                 .id("\(range.rawValue)-\(selected)")
                 .frame(minHeight: 260)
@@ -56,13 +59,15 @@ struct HistoryView: View {
 
 private struct HistoryPlot: View {
     let displayed: [HistoryPoint]
+    let resets: [Date]
     let start: Date
     let duration: TimeInterval
     @State private var hovered: HistoryPoint?
     @State private var hoverLocation: CGPoint = .zero
 
-    init(points: [HistoryPoint], start: Date, duration: TimeInterval) {
+    init(points: [HistoryPoint], resets: [Date], start: Date, duration: TimeInterval) {
         displayed = Self.simplify(points)
+        self.resets = resets
         self.start = start
         self.duration = duration
     }
@@ -137,6 +142,21 @@ private struct HistoryPlot: View {
                                  at: CGPoint(x: plot.minX - 6, y: y), anchor: .trailing)
                 }
                 context.stroke(Path { $0.addRect(plot) }, with: .color(.primary.opacity(0.35)), lineWidth: 1)
+                for reset in resets {
+                    let progress = reset.timeIntervalSince(start) / duration
+                    let x = plot.minX + plot.width * CGFloat(progress)
+                    var line = Path()
+                    line.move(to: CGPoint(x: x, y: plot.minY))
+                    line.addLine(to: CGPoint(x: x, y: plot.maxY))
+                    context.stroke(line, with: .color(.yellow.opacity(0.75)),
+                                   style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    context.draw(Text("reset " + reset.formatted(date: .omitted, time: .shortened))
+                                    .font(.system(size: 9)).foregroundColor(.yellow),
+                                 at: CGPoint(x: min(x + 4, plot.maxX - 62), y: plot.minY + 7),
+                                 anchor: .leading)
+                }
+
+
                 let series: [(Color, KeyPath<HistoryPoint, Double>)] = [
                     (.blue, \.fiveHourRemaining), (.orange, \.weeklyRemaining)
                 ]

@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 
 struct HistoryPoint: Equatable {
     let timestamp: Date
@@ -86,7 +86,9 @@ struct HistoryStore {
 
 enum HistoryRange: Int, CaseIterable, Identifiable {
     case hour = 3_600
+    case fiveHours = 18_000
     case day = 86_400
+    case week = 604_800
     case thirtyDays = 2_592_000
 
     var id: Int { rawValue }
@@ -94,7 +96,9 @@ enum HistoryRange: Int, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .hour: "1 hour"
+        case .fiveHours: "5 hours"
         case .day: "1 day"
+        case .week: "7 days"
         case .thirtyDays: "30 days"
         }
     }
@@ -118,6 +122,15 @@ struct HistoryTimeline {
 
     var pages: [Int] {
         Array(Set(points.map { page(of: $0) })).sorted()
+    }
+
+    var resetEvents: [Date] {
+        guard points.count > 1 else { return [] }
+        return zip(points, points.dropFirst()).compactMap { pair in
+            let (previous, current) = pair
+            return previous.fiveHourRemaining < 100 && current.fiveHourRemaining >= 100
+                ? current.timestamp : nil
+        }
     }
 
     func visible(on page: Int) -> [HistoryPoint] {

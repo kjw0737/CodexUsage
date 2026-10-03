@@ -1,4 +1,4 @@
-import AppKit
+﻿import AppKit
 import SwiftUI
 
 private let accent = Color(red: 239.0 / 255.0, green: 228.0 / 255.0, blue: 128.0 / 255.0)
@@ -233,6 +233,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: WidgetWindow!
     private var settingsWindow: NSWindow?
     private var historyWindow: NSWindow?
+    private var tokenStatisticsWindow: NSWindow?
     private var statusItem: NSStatusItem!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -352,7 +353,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         do {
             let points = try HistoryStore().read()
-            let view = HistoryView(points: points)
+            let view = HistoryView(points: points, onTokenStatistics: { [weak self] in
+                self?.showTokenStatistics(history: points)
+            })
             if historyWindow == nil {
                 let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 460),
                                      styleMask: [.titled, .closable, .resizable],
@@ -368,6 +371,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
         } catch {
             showError("CSV 기록을 읽지 못했습니다: \(error.localizedDescription)")
+        }
+    }
+
+    private func showTokenStatistics(history: [HistoryPoint]) {
+        if let tokenStatisticsWindow {
+            tokenStatisticsWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        Task {
+            do {
+                let turns = try await Task.detached(priority: .utility) {
+                    try TokenStatisticsStore.read()
+                }.value
+                let statistics = TokenStatisticsStore.summarize(turns)
+                let view = TokenStatisticsView(statistics: statistics, history: history)
+                let panel = NSWindow(
+                    contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+                    styleMask: [.titled, .closable, .resizable, .miniaturizable],
+                    backing: .buffered, defer: false
+                )
+                panel.title = "Codex Token Statistics"
+                panel.minSize = NSSize(width: 760, height: 620)
+                panel.contentView = NSHostingView(rootView: view)
+                panel.isReleasedWhenClosed = false
+                panel.center()
+                tokenStatisticsWindow = panel
+                panel.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+            } catch {
+                showError("Codex session records could not be read: \(error.localizedDescription)")
+            }
         }
     }
 

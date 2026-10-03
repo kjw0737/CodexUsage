@@ -38,8 +38,8 @@ cat > "$contents/Info.plist" <<'PLIST'
     <key>CFBundleDisplayName</key><string>CodexUsage</string>
     <key>CFBundleExecutable</key><string>CodexUsageMac</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.0.20260927</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleShortVersionString</key><string>1.0.2026.1003</string>
+    <key>CFBundleVersion</key><string>20261003</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>

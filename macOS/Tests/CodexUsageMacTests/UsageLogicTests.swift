@@ -1,4 +1,4 @@
-import XCTest
+﻿import XCTest
 @testable import CodexUsageMac
 
 final class UsageLogicTests: XCTestCase {
@@ -100,5 +100,42 @@ final class UsageLogicTests: XCTestCase {
         XCTAssertTrue(tracker.update(snapshot(50), warning: 50, alert: 20).isEmpty)
         XCTAssertEqual(tracker.update(snapshot(20), warning: 50, alert: 20).count, 1)
         XCTAssertEqual(tracker.update(snapshot(70), warning: 50, alert: 20).count, 1)
+    }
+    func testHistoryRangesAndResetRecoveryEvents() {
+        let origin = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: 1_800_000_000))
+        let points = [
+            HistoryPoint(timestamp: origin, fiveHourRemaining: 40, weeklyRemaining: 80),
+            HistoryPoint(timestamp: origin.addingTimeInterval(60), fiveHourRemaining: 100, weeklyRemaining: 80),
+            HistoryPoint(timestamp: origin.addingTimeInterval(120), fiveHourRemaining: 99, weeklyRemaining: 80)
+        ]
+        let timeline = HistoryTimeline(points: points, range: .fiveHours)
+        XCTAssertEqual(HistoryRange.allCases.map(\.title),
+                       ["1 hour", "5 hours", "1 day", "7 days", "30 days"])
+        XCTAssertEqual(timeline.resetEvents, [points[1].timestamp])
+    }
+
+    func testTokenStatisticsReadsActualSessionShapeAndSummarizes() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CodexUsage-Tokens-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let lines = [
+            #"{"type":"turn_context","payload":{"model":"gpt-test"}}"#,
+            #"{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":100,"cached_input_tokens":60,"output_tokens":20,"reasoning_output_tokens":5,"total_tokens":120}}}}"#,
+            #"{"type":"turn_context","payload":{"model":"gpt-test"}}"#,
+            #"{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":300,"cached_input_tokens":200,"output_tokens":40,"reasoning_output_tokens":10,"total_tokens":340}}}}"#
+        ]
+        try lines.joined(separator: "\n").write(
+            to: directory.appendingPathComponent("session.jsonl"), atomically: true, encoding: .utf8
+        )
+        let turns = try TokenStatisticsStore.read(directory: directory)
+        XCTAssertEqual(turns.count, 2)
+        let statistics = TokenStatisticsStore.summarize(turns)
+        XCTAssertEqual(statistics.count, 1)
+        XCTAssertEqual(statistics[0].commands, 2)
+        XCTAssertEqual(statistics[0].averageInput, 200)
+        XCTAssertEqual(statistics[0].averageCachedInput, 130)
+        XCTAssertEqual(statistics[0].median, 340)
+        XCTAssertEqual(statistics[0].cacheRate, 65, accuracy: 0.001)
     }
 }
